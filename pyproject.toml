@@ -21,6 +21,8 @@ dependencies = [
     "uvicorn[standard]>=0.30.0",
     "pydantic>=2.8.0",
     "httpx>=0.27.0",
+    "sqlalchemy",
+    "alembic",
 ]
 
 [project.optional-dependencies]
@@ -89,3 +91,8 @@ strict_equality = true
 
 show_error_codes = true
 pretty = true
+
+# Ignore generated migration files
+exclude = [
+    "^alembic/"
+]

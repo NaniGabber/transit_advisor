@@ -25,6 +25,8 @@ dependencies = [
     "alembic",
     "psycopg[binary]",
     "python-dotenv",
+    "pytest",
+
 ]
 
 [project.optional-dependencies]

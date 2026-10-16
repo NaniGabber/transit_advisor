@@ -36,7 +36,7 @@ dev = [
     "pytest-cov>=5.0.0",
     "ruff>=0.6.0",
     "black>=24.0.0",
-    "mypy>=1.10.0",
+    "mypy>=2.4.0",
 ]
 
 [project.urls]
@@ -89,7 +89,7 @@ warn_return_any = true
 warn_unused_ignores = true
 warn_redundant_casts = true
 warn_unused_configs = true
-
+strict = true
 no_implicit_optional = true
 strict_equality = true
 

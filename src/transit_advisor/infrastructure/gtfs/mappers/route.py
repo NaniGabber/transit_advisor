@@ -1,12 +1,12 @@
 from transit_advisor.domain.route import Route
-from transit_advisor.infrastructure.gtfs.parsing import normalize, parse_route_type
+from transit_advisor.infrastructure.gtfs.parsing import normalize, parse_int
 
 
 def to_route(
     row: dict[str, str],
     agency_id: int,
 ) -> Route | None:
-    route_type = parse_route_type(
+    route_type = parse_int(
         row.get("route_type", ""),
     )
 

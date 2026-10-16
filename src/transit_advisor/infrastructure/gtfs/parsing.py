@@ -7,3 +7,10 @@ def parse_route_type(value: str) -> int | None:
         return int(value)
     except ValueError:
         return None
+
+
+def parse_float(value: str) -> float | None:
+    try:
+        return float(value)
+    except ValueError:
+        return None

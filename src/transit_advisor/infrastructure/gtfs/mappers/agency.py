@@ -1,8 +1,5 @@
 from transit_advisor.domain.agency import Agency
-
-
-def normalize(value: str) -> str:
-    return " ".join(value.split())
+from transit_advisor.infrastructure.gtfs.parsing import normalize
 
 
 def to_agency(row: dict[str, str]) -> Agency | None:

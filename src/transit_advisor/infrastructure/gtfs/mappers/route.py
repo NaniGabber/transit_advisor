@@ -1,15 +1,5 @@
 from transit_advisor.domain.route import Route
-
-
-def normalize(value: str) -> str:
-    return " ".join(value.split())
-
-
-def parse_route_type(value: str) -> int | None:
-    try:
-        return int(value)
-    except ValueError:
-        return None
+from transit_advisor.infrastructure.gtfs.parsing import normalize, parse_route_type
 
 
 def to_route(

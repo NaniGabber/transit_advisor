@@ -1,15 +1,21 @@
 from transit_advisor.domain.repositories.agency import AgencyRepository
 from transit_advisor.domain.repositories.route import RouteRepository
+from transit_advisor.domain.repositories.stop import StopRepository
 from transit_advisor.infrastructure.gtfs.mappers.agency import to_agency
 from transit_advisor.infrastructure.gtfs.mappers.route import to_route
+from transit_advisor.infrastructure.gtfs.mappers.stop import to_stop
 
 
 class GtfsImportService:
     def __init__(
-        self, agency_repository: AgencyRepository, route_repository: RouteRepository
+        self,
+        agency_repository: AgencyRepository,
+        route_repository: RouteRepository,
+        stop_repository: StopRepository,
     ) -> None:
         self._agency_repository = agency_repository
         self._route_repository = route_repository
+        self._stop_repository = stop_repository
 
     def import_agencies(
         self,
@@ -62,6 +68,23 @@ class GtfsImportService:
                 route,
             )
 
+            imported += 1
+
+        return imported
+
+    def import_stops(
+        self,
+        rows: list[dict[str, str]],
+    ) -> int:
+        imported = 0
+
+        for row in rows:
+            stop = to_stop(row)
+
+            if stop is None:
+                continue
+
+            self._stop_repository.save(stop)
             imported += 1
 
         return imported

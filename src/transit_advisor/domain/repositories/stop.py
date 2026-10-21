@@ -3,7 +3,7 @@ from typing import Protocol
 from transit_advisor.domain.stop import Stop
 
 
-class RouteRepository(Protocol):
+class StopRepository(Protocol):
     def save(
         self,
         stop: Stop,

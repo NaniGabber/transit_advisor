@@ -1,18 +1,12 @@
 from transit_advisor.domain.agency import Agency
 from transit_advisor.services.gtfs_import_service import GtfsImportService
 
-from .fake_repos import FakeAgencyRepository, FakeRouteRepository
+# Імпортуємо функцію, яка повертає контейнер
+from .fake_repos import get_service
 
 
 def test_import_agencies_returns_imported_count() -> None:
-    agency_repository = FakeAgencyRepository()
-    route_repository = FakeRouteRepository()
-
-    service = GtfsImportService(
-        agency_repository=agency_repository,
-        route_repository=route_repository,
-    )
-
+    container = get_service()
     rows = [
         {
             "agency_id": "metro",
@@ -21,20 +15,13 @@ def test_import_agencies_returns_imported_count() -> None:
         }
     ]
 
-    imported = service.import_agencies(rows)
+    imported = container.service.import_agencies(rows)
 
     assert imported == 1
 
 
 def test_import_agencies_saves_valid_agencies() -> None:
-    agency_repository = FakeAgencyRepository()
-    route_repository = FakeRouteRepository()
-
-    service = GtfsImportService(
-        agency_repository=agency_repository,
-        route_repository=route_repository,
-    )
-
+    container = get_service()
     rows = [
         {
             "agency_id": "metro",
@@ -43,25 +30,18 @@ def test_import_agencies_saves_valid_agencies() -> None:
         }
     ]
 
-    service.import_agencies(rows)
+    container.service.import_agencies(rows)
 
-    assert len(agency_repository.saved) == 1
-
-    agency = agency_repository.saved[0]
+    # Тепер ми маємо доступ до сховища через container
+    assert len(container.agency_repository.saved) == 1
+    agency = container.agency_repository.saved[0]
 
     assert agency.agency_id == "metro"
     assert agency.name == "Kharkiv Metro"
 
 
 def test_import_agencies_skips_invalid_rows() -> None:
-    agency_repository = FakeAgencyRepository()
-    route_repository = FakeRouteRepository()
-
-    service = GtfsImportService(
-        agency_repository=agency_repository,
-        route_repository=route_repository,
-    )
-
+    container = get_service()
     rows = [
         {
             "agency_id": "",
@@ -70,17 +50,17 @@ def test_import_agencies_skips_invalid_rows() -> None:
         }
     ]
 
-    imported = service.import_agencies(rows)
+    imported = container.service.import_agencies(rows)
 
     assert imported == 0
-    assert len(agency_repository.saved) == 0
+    assert len(container.agency_repository.saved) == 0
 
 
-def test_import_routes_returns_imported_count() -> None:
-    agency_repository = FakeAgencyRepository()
-    route_repository = FakeRouteRepository()
-
-    agency_repository.save(
+# --- Допоміжна функція для тестів маршрутів, щоб не дублювати код ---
+def _get_service_with_agency() -> GtfsImportService:
+    container = get_service()
+    # Додаємо агентство в сховище заздалегідь
+    container.agency_repository.save(
         Agency(
             id=1,
             agency_id="metro",
@@ -88,12 +68,11 @@ def test_import_routes_returns_imported_count() -> None:
             timezone="Europe/Kyiv",
         )
     )
+    return container.service
 
-    service = GtfsImportService(
-        agency_repository=agency_repository,
-        route_repository=route_repository,
-    )
 
+def test_import_routes_returns_imported_count() -> None:
+    service = _get_service_with_agency()
     rows = [
         {
             "agency_id": "metro",
@@ -110,21 +89,9 @@ def test_import_routes_returns_imported_count() -> None:
 
 
 def test_import_routes_saves_valid_route() -> None:
-    agency_repository = FakeAgencyRepository()
-    route_repository = FakeRouteRepository()
-
-    agency_repository.save(
-        Agency(
-            id=1,
-            agency_id="metro",
-            name="Kharkiv Metro",
-            timezone="Europe/Kyiv",
-        )
-    )
-
-    service = GtfsImportService(
-        agency_repository=agency_repository,
-        route_repository=route_repository,
+    container = get_service()
+    container.agency_repository.save(
+        Agency(id=1, agency_id="metro", name="Kharkiv Metro", timezone="Europe/Kyiv")
     )
 
     rows = [
@@ -137,20 +104,14 @@ def test_import_routes_saves_valid_route() -> None:
         }
     ]
 
-    service.import_routes(rows)
+    container.service.import_routes(rows)
 
-    assert len(route_repository.saved) == 1
-    assert route_repository.saved[0].route_id == "11"
+    assert len(container.route_repository.saved) == 1
+    assert container.route_repository.saved[0].route_id == "11"
 
 
 def test_import_routes_skips_unknown_agency() -> None:
-    agency_repository = FakeAgencyRepository()
-    route_repository = FakeRouteRepository()
-
-    service = GtfsImportService(
-        agency_repository=agency_repository,
-        route_repository=route_repository,
-    )
+    container = get_service()
 
     rows = [
         {
@@ -162,28 +123,16 @@ def test_import_routes_skips_unknown_agency() -> None:
         }
     ]
 
-    imported = service.import_routes(rows)
+    imported = container.service.import_routes(rows)
 
     assert imported == 0
-    assert len(route_repository.saved) == 0
+    assert len(container.route_repository.saved) == 0
 
 
 def test_import_routes_skips_invalid_route() -> None:
-    agency_repository = FakeAgencyRepository()
-    route_repository = FakeRouteRepository()
-
-    agency_repository.save(
-        Agency(
-            id=1,
-            agency_id="metro",
-            name="Kharkiv Metro",
-            timezone="Europe/Kyiv",
-        )
-    )
-
-    service = GtfsImportService(
-        agency_repository=agency_repository,
-        route_repository=route_repository,
+    container = get_service()
+    container.agency_repository.save(
+        Agency(id=1, agency_id="metro", name="Kharkiv Metro", timezone="Europe/Kyiv")
     )
 
     rows = [
@@ -196,28 +145,16 @@ def test_import_routes_skips_invalid_route() -> None:
         }
     ]
 
-    imported = service.import_routes(rows)
+    imported = container.service.import_routes(rows)
 
     assert imported == 0
-    assert len(route_repository.saved) == 0
+    assert len(container.route_repository.saved) == 0
 
 
 def test_import_routes_imports_only_valid_routes() -> None:
-    agency_repository = FakeAgencyRepository()
-    route_repository = FakeRouteRepository()
-
-    agency_repository.save(
-        Agency(
-            id=1,
-            agency_id="metro",
-            name="Kharkiv Metro",
-            timezone="Europe/Kyiv",
-        )
-    )
-
-    service = GtfsImportService(
-        agency_repository=agency_repository,
-        route_repository=route_repository,
+    container = get_service()
+    container.agency_repository.save(
+        Agency(id=1, agency_id="metro", name="Kharkiv Metro", timezone="Europe/Kyiv")
     )
 
     rows = [
@@ -244,7 +181,114 @@ def test_import_routes_imports_only_valid_routes() -> None:
         },
     ]
 
-    imported = service.import_routes(rows)
+    imported = container.service.import_routes(rows)
 
     assert imported == 1
-    assert len(route_repository.saved) == 1
+    assert len(container.route_repository.saved) == 1
+
+
+def test_import_stops_returns_imported_count() -> None:
+    container = get_service()
+    rows = [
+        {
+            "stop_id": "S1",
+            "stop_name": "Railway Station",
+            "stop_lat": "49.989",
+            "stop_lon": "36.230",
+        }
+    ]
+
+    imported = container.service.import_stops(rows)
+
+    assert imported == 1
+
+
+def test_import_stops_saves_valid_stop() -> None:
+    container = get_service()
+    rows = [
+        {
+            "stop_id": "S1",
+            "stop_name": "Railway Station",
+            "stop_lat": "49.989",
+            "stop_lon": "36.230",
+            "stop_code": "123",
+            "stop_desc": "Main station",
+        }
+    ]
+
+    container.service.import_stops(rows)
+
+    assert len(container.stop_repository.saved) == 1
+    stop = container.stop_repository.saved[0]
+
+    assert stop.stop_id == "S1"
+    assert stop.name == "Railway Station"
+    assert stop.latitude == 49.989
+    assert stop.longitude == 36.230
+    assert stop.code == "123"
+    assert stop.description == "Main station"
+
+
+def test_import_stops_skips_invalid_row_missing_id() -> None:
+    container = get_service()
+    rows = [
+        {
+            "stop_id": "",  # Порожній ID
+            "stop_name": "Railway Station",
+            "stop_lat": "49.989",
+            "stop_lon": "36.230",
+        }
+    ]
+
+    imported = container.service.import_stops(rows)
+
+    assert imported == 0
+    assert len(container.stop_repository.saved) == 0
+
+
+def test_import_stops_skips_invalid_row_missing_coordinates() -> None:
+    container = get_service()
+    rows = [
+        {
+            "stop_id": "S2",
+            "stop_name": "Unknown Place",
+            "stop_lat": "",  # Немає широти
+            "stop_lon": "36.230",
+        }
+    ]
+
+    imported = container.service.import_stops(rows)
+
+    assert imported == 0
+    assert len(container.stop_repository.saved) == 0
+
+
+def test_import_stops_imports_only_valid_stops() -> None:
+    container = get_service()
+    rows = [
+        {
+            "stop_id": "S1",
+            "stop_name": "Valid Stop",
+            "stop_lat": "49.989",
+            "stop_lon": "36.230",
+        },
+        {
+            "stop_id": "",  # Невалідний (немає ID)
+            "stop_name": "Invalid Stop",
+            "stop_lat": "49.989",
+            "stop_lon": "36.230",
+        },
+        {
+            "stop_id": "S3",
+            "stop_name": "Another Valid Stop",
+            "stop_lat": "50.000",
+            "stop_lon": "36.200",
+        },
+    ]
+
+    imported = container.service.import_stops(rows)
+
+    assert imported == 2
+    assert len(container.stop_repository.saved) == 2
+    assert container.stop_repository.saved[0].stop_id == "S1"
+    assert container.stop_repository.saved[1].stop_id == "S3"

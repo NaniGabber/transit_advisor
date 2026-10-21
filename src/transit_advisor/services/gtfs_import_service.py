@@ -1,9 +1,11 @@
 from transit_advisor.domain.repositories.agency import AgencyRepository
 from transit_advisor.domain.repositories.route import RouteRepository
 from transit_advisor.domain.repositories.stop import StopRepository
+from transit_advisor.domain.repositories.trip import TripRepository
 from transit_advisor.infrastructure.gtfs.mappers.agency import to_agency
 from transit_advisor.infrastructure.gtfs.mappers.route import to_route
 from transit_advisor.infrastructure.gtfs.mappers.stop import to_stop
+from transit_advisor.infrastructure.gtfs.mappers.trip import to_trip
 
 
 class GtfsImportService:
@@ -12,10 +14,12 @@ class GtfsImportService:
         agency_repository: AgencyRepository,
         route_repository: RouteRepository,
         stop_repository: StopRepository,
+        trip_repository: TripRepository,
     ) -> None:
         self._agency_repository = agency_repository
         self._route_repository = route_repository
         self._stop_repository = stop_repository
+        self._trip_repository = trip_repository
 
     def import_agencies(
         self,
@@ -85,6 +89,33 @@ class GtfsImportService:
                 continue
 
             self._stop_repository.save(stop)
+            imported += 1
+
+        return imported
+
+    def import_trips(
+        self,
+        rows: list[dict[str, str]],
+    ) -> int:
+        imported = 0
+
+        for row in rows:
+            gtfs_route_id = row.get("route_id", "")
+
+            route = self._route_repository.find_by_route_id(gtfs_route_id)
+
+            if route is None or route.id is None:
+                continue
+
+            trip = to_trip(
+                row=row,
+                route_id=route.id,
+            )
+
+            if trip is None:
+                continue
+
+            self._trip_repository.save(trip)
             imported += 1
 
         return imported

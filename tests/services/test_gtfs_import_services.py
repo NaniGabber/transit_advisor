@@ -1,8 +1,9 @@
 from transit_advisor.domain.agency import Agency
+from transit_advisor.domain.route import Route
 from transit_advisor.services.gtfs_import_service import GtfsImportService
 
 # Імпортуємо функцію, яка повертає контейнер
-from .fake_repos import get_service
+from .fake_repos import FakeContainer, get_service
 
 
 def test_import_agencies_returns_imported_count() -> None:
@@ -292,3 +293,142 @@ def test_import_stops_imports_only_valid_stops() -> None:
     assert len(container.stop_repository.saved) == 2
     assert container.stop_repository.saved[0].stop_id == "S1"
     assert container.stop_repository.saved[1].stop_id == "S3"
+
+
+def _get_service_with_route() -> FakeContainer:
+    container = get_service()
+
+    agency = container.agency_repository.save(
+        Agency(id=None, agency_id="metro", name="Kharkiv Metro", timezone="Europe/Kyiv")
+    )
+    assert agency.id is not None
+
+    route = Route(
+        id=None,
+        agency_id=agency.id,
+        route_id="11",
+        short_name="11",
+        long_name="Railway Station",
+        route_type=3,
+    )
+    container.route_repository.save(route)
+
+    return container
+
+
+def test_import_trips_returns_imported_count() -> None:
+    container = _get_service_with_route()
+
+    rows = [
+        {
+            "route_id": "11",
+            "trip_id": "T1",
+            "trip_headsign": "Center",
+        }
+    ]
+
+    imported = container.service.import_trips(rows)
+
+    assert imported == 1
+
+
+def test_import_trips_saves_valid_trip() -> None:
+    container = get_service()
+
+    agency = container.agency_repository.save(
+        Agency(id=None, agency_id="metro", name="Kharkiv Metro", timezone="Europe/Kyiv")
+    )
+
+    assert agency.id is not None
+
+    container.route_repository.save(
+        Route(
+            id=None,
+            agency_id=agency.id,
+            route_id="11",
+            short_name="11",
+            long_name="Station",
+            route_type=3,
+        )
+    )
+
+    rows = [
+        {
+            "route_id": "11",
+            "trip_id": "T1",
+            "trip_headsign": "Center",
+        }
+    ]
+
+    container.service.import_trips(rows)
+
+    assert len(container.trip_repository.saved) == 1
+    trip = container.trip_repository.saved[0]
+
+    assert trip.trip_id == "T1"
+    assert trip.route_id == 1  # Перевіряємо, що зберігся внутрішній ID маршруту
+    assert trip.headsign == "Center"
+
+
+def test_import_trips_skips_unknown_route() -> None:
+    container = _get_service_with_route()
+
+    rows = [
+        {
+            "route_id": "999",  # Такого маршруту немає в БД
+            "trip_id": "T1",
+            "trip_headsign": "Center",
+        }
+    ]
+
+    imported = container.service.import_trips(rows)
+
+    assert imported == 0
+
+
+def test_import_trips_skips_invalid_trip() -> None:
+    container = get_service()
+    agency = container.agency_repository.save(
+        Agency(id=None, agency_id="metro", name="Kharkiv Metro", timezone="Europe/Kyiv")
+    )
+    assert agency.id is not None
+
+    container.route_repository.save(
+        Route(
+            id=None,
+            agency_id=agency.id,
+            route_id="11",
+            short_name="11",
+            long_name="Station",
+            route_type=3,
+        )
+    )
+
+    rows = [
+        {
+            "route_id": "11",
+            "trip_id": "",  # Невалідний рейс (немає trip_id)
+            "trip_headsign": "Center",
+        }
+    ]
+
+    imported = container.service.import_trips(rows)
+
+    assert imported == 0
+    assert len(container.trip_repository.saved) == 0
+
+
+def test_import_trips_imports_only_valid_trips() -> None:
+    container = _get_service_with_route()  # Тепер тут контейнер
+
+    rows = [
+        {"route_id": "11", "trip_id": "T1", "trip_headsign": "Valid"},
+        {"route_id": "999", "trip_id": "T2", "trip_headsign": "Unknown Route"},
+        {"route_id": "11", "trip_id": "", "trip_headsign": "Invalid"},
+    ]
+
+    imported = container.service.import_trips(rows)  # Звертаємось до service
+
+    assert imported == 1
+    assert len(container.trip_repository.saved) == 1
+    assert container.trip_repository.saved[0].trip_id == "T1"

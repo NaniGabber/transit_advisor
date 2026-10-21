@@ -2,9 +2,11 @@ import os
 from collections.abc import Generator
 
 import pytest
+from dotenv import load_dotenv
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
 
+from transit_advisor.domain.agency import Agency
 from transit_advisor.infrastructure.database.base import Base
 from transit_advisor.infrastructure.repositories.agency import (
     SqlAlchemyAgencyRepository,
@@ -12,6 +14,11 @@ from transit_advisor.infrastructure.repositories.agency import (
 from transit_advisor.infrastructure.repositories.route import (
     SqlAlchemyRouteRepository,
 )
+from transit_advisor.infrastructure.repositories.stop import (
+    SqlAlchemyStopRepository,
+)
+
+load_dotenv()
 
 DATABASE_URL = os.environ["DATABASE_URL"]
 
@@ -49,9 +56,32 @@ def agency_repository(
 
 
 @pytest.fixture
+def agency(
+    agency_repository: SqlAlchemyAgencyRepository,
+) -> Agency:
+    return agency_repository.save(
+        Agency(
+            id=None,
+            agency_id="metro",
+            name="Kharkiv Metro",
+            timezone="Europe/Kyiv",
+        )
+    )
+
+
+@pytest.fixture
 def route_repository(
     session: Session,
 ) -> SqlAlchemyRouteRepository:
     return SqlAlchemyRouteRepository(
+        session,
+    )
+
+
+@pytest.fixture
+def stop_repository(
+    session: Session,
+) -> SqlAlchemyStopRepository:
+    return SqlAlchemyStopRepository(
         session,
     )

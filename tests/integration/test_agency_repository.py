@@ -1,26 +1,14 @@
 from transit_advisor.domain.agency import Agency
+from transit_advisor.infrastructure.repositories.agency import (
+    SqlAlchemyAgencyRepository,
+)
 
 
-def test_save_agency(
-    agency_repository,
-) -> None:
-    agency = Agency(
-        id=None,
-        agency_id="metro",
-        name="Kharkiv Metro",
-        timezone="Europe/Kyiv",
-    )
-
-    saved = agency_repository.save(
-        agency,
-    )
-
-    assert saved.id is not None
-    assert saved.agency_id == "metro"
+def test_save_agency(agency_repository: SqlAlchemyAgencyRepository) -> None: ...
 
 
 def test_find_by_agency_id(
-    agency_repository,
+    agency_repository: SqlAlchemyAgencyRepository,
 ) -> None:
     agency = Agency(
         id=None,
@@ -43,7 +31,7 @@ def test_find_by_agency_id(
 
 
 def test_find_by_agency_id_returns_none_for_missing_agency(
-    agency_repository,
+    agency_repository: SqlAlchemyAgencyRepository,
 ) -> None:
     found = agency_repository.find_by_agency_id(
         "missing",

@@ -17,6 +17,7 @@ from transit_advisor.infrastructure.repositories.route import (
 from transit_advisor.infrastructure.repositories.stop import (
     SqlAlchemyStopRepository,
 )
+from transit_advisor.infrastructure.repositories.trip import SqlAlchemyTripRepository
 
 load_dotenv()
 
@@ -85,3 +86,10 @@ def stop_repository(
     return SqlAlchemyStopRepository(
         session,
     )
+
+
+@pytest.fixture
+def trip_repository(
+    session: Session,
+) -> SqlAlchemyTripRepository:
+    return SqlAlchemyTripRepository(session)

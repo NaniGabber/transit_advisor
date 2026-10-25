@@ -1,10 +1,12 @@
 from transit_advisor.domain.repositories.agency import AgencyRepository
 from transit_advisor.domain.repositories.route import RouteRepository
 from transit_advisor.domain.repositories.stop import StopRepository
+from transit_advisor.domain.repositories.stoptime import StopTimeRepository
 from transit_advisor.domain.repositories.trip import TripRepository
 from transit_advisor.infrastructure.gtfs.mappers.agency import to_agency
 from transit_advisor.infrastructure.gtfs.mappers.route import to_route
 from transit_advisor.infrastructure.gtfs.mappers.stop import to_stop
+from transit_advisor.infrastructure.gtfs.mappers.stoptime import to_stoptime
 from transit_advisor.infrastructure.gtfs.mappers.trip import to_trip
 
 
@@ -15,11 +17,13 @@ class GtfsImportService:
         route_repository: RouteRepository,
         stop_repository: StopRepository,
         trip_repository: TripRepository,
+        stoptime_repository: StopTimeRepository,
     ) -> None:
         self._agency_repository = agency_repository
         self._route_repository = route_repository
         self._stop_repository = stop_repository
         self._trip_repository = trip_repository
+        self._stoptime_repository = stoptime_repository
 
     def import_agencies(
         self,
@@ -116,6 +120,44 @@ class GtfsImportService:
                 continue
 
             self._trip_repository.save(trip)
+            imported += 1
+
+        return imported
+
+    def import_stoptimes(
+        self,
+        rows: list[dict[str, str]],
+    ) -> int:
+        imported = 0
+
+        for row in rows:
+            trip = self._trip_repository.find_by_trip_id(
+                row.get("trip_id", ""),
+            )
+
+            stop = self._stop_repository.find_by_stop_id(
+                row.get("stop_id", ""),
+            )
+
+            if trip is None or stop is None:
+                continue
+
+            if trip.id is None or stop.id is None:
+                continue
+
+            stop_time = to_stoptime(
+                row=row,
+                trip_id=trip.id,
+                stop_id=stop.id,
+            )
+
+            if stop_time is None:
+                continue
+
+            self._stoptime_repository.save(
+                stop_time,
+            )
+
             imported += 1
 
         return imported

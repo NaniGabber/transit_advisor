@@ -2,7 +2,7 @@ from transit_advisor.domain.stoptime import StopTime
 from transit_advisor.infrastructure.gtfs.parsing import normalize, parse_int
 
 
-def to_stop_time(
+def to_stoptime(
     row: dict[str, str],
     trip_id: int,
     stop_id: int,

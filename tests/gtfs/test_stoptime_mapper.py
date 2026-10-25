@@ -1,7 +1,7 @@
 import pytest
 
 from transit_advisor.infrastructure.gtfs.mappers.stoptime import (
-    to_stop_time,
+    to_stoptime,
 )
 
 
@@ -12,7 +12,7 @@ def test_to_stop_time_returns_stop_time_for_valid_row() -> None:
         "stop_sequence": "1",
     }
 
-    stop_time = to_stop_time(
+    stop_time = to_stoptime(
         row=row,
         trip_id=1,
         stop_id=1,
@@ -48,7 +48,7 @@ def test_to_stop_time_returns_none_for_missing_required_fields(
     row: dict[str, str],
 ) -> None:
     assert (
-        to_stop_time(
+        to_stoptime(
             row=row,
             trip_id=1,
             stop_id=1,
@@ -75,7 +75,7 @@ def test_to_stop_time_returns_none_for_invalid_stop_sequence(
     }
 
     assert (
-        to_stop_time(
+        to_stoptime(
             row=row,
             trip_id=1,
             stop_id=1,
@@ -92,7 +92,7 @@ def test_to_stop_time_returns_none_for_empty_arrival_time() -> None:
     }
 
     assert (
-        to_stop_time(
+        to_stoptime(
             row=row,
             trip_id=1,
             stop_id=1,
@@ -109,7 +109,7 @@ def test_to_stop_time_returns_none_for_empty_departure_time() -> None:
     }
 
     assert (
-        to_stop_time(
+        to_stoptime(
             row=row,
             trip_id=1,
             stop_id=1,

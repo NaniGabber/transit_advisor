@@ -1,6 +1,7 @@
 from transit_advisor.domain.agency import Agency
 from transit_advisor.domain.route import Route
 from transit_advisor.domain.stop import Stop
+from transit_advisor.domain.stoptime import StopTime
 from transit_advisor.domain.trip import Trip
 from transit_advisor.services.gtfs_import_service import GtfsImportService
 
@@ -66,12 +67,41 @@ class FakeTripRepository:
         self.saved.append(trip)
         return trip
 
-    # ВИПРАВЛЕНО: метод названо правильно, і шукає він по trip_id
     def find_by_trip_id(self, trip_id: str) -> Trip | None:
         for trip in self.saved:
             if trip.trip_id == trip_id:
                 return trip
         return None
+
+
+class FakeStopTimeRepository:
+    def __init__(self) -> None:
+        self.saved: list[StopTime] = []
+        self._next_id = 1
+
+    def save(
+        self,
+        stop_time: StopTime,
+    ) -> StopTime:
+        saved = StopTime(
+            id=self._next_id,
+            trip_id=stop_time.trip_id,
+            stop_id=stop_time.stop_id,
+            arrival_time=stop_time.arrival_time,
+            departure_time=stop_time.departure_time,
+            stop_sequence=stop_time.stop_sequence,
+        )
+
+        self.saved.append(saved)
+        self._next_id += 1
+
+        return saved
+
+    def find_by_trip_id(
+        self,
+        trip_id: int,
+    ) -> list[StopTime]:
+        return [stop_time for stop_time in self.saved if stop_time.trip_id == trip_id]
 
 
 class FakeContainer:
@@ -80,15 +110,16 @@ class FakeContainer:
         self.route_repository = FakeRouteRepository()
         self.stop_repository = FakeStopRepository()
         self.trip_repository = FakeTripRepository()
+        self.stoptime_repository = FakeStopTimeRepository()
 
         self.service = GtfsImportService(
             agency_repository=self.agency_repository,
             route_repository=self.route_repository,
             stop_repository=self.stop_repository,
             trip_repository=self.trip_repository,
+            stoptime_repository=self.stoptime_repository,
         )
 
 
 def get_service() -> FakeContainer:
-    """Повертає контейнер із сервісом та репозиторіями."""
     return FakeContainer()

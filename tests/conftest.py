@@ -14,6 +14,9 @@ from transit_advisor.infrastructure.repositories.agency import (
 from transit_advisor.infrastructure.repositories.route import (
     SqlAlchemyRouteRepository,
 )
+from transit_advisor.infrastructure.repositories.scheduleversion import (
+    SqlAlchemyScheduleVersionRepository,
+)
 from transit_advisor.infrastructure.repositories.stop import (
     SqlAlchemyStopRepository,
 )
@@ -93,3 +96,12 @@ def trip_repository(
     session: Session,
 ) -> SqlAlchemyTripRepository:
     return SqlAlchemyTripRepository(session)
+
+
+@pytest.fixture
+def schedule_version_repository(
+    session: Session,
+) -> SqlAlchemyScheduleVersionRepository:
+    return SqlAlchemyScheduleVersionRepository(
+        session,
+    )

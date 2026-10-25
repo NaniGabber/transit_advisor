@@ -5,6 +5,16 @@ import pytest
 from transit_advisor.domain.scheduleversion import ScheduleVersion
 
 
+def test_create_valid_schedule_version() -> None:
+    version = ScheduleVersion(
+        id=None,
+        checksum="abc123",
+        imported_at=datetime.now(),
+    )
+
+    assert version.checksum == "abc123"
+
+
 @pytest.mark.parametrize(
     "checksum",
     [

@@ -6,7 +6,11 @@ from transit_advisor.domain.scheduleversion import (
 from transit_advisor.domain.stop import Stop
 from transit_advisor.domain.stoptime import StopTime
 from transit_advisor.domain.trip import Trip
+from transit_advisor.services.checksum_service import ChecksumService
+from transit_advisor.services.feed_upload_service import FeedUploadService
+from transit_advisor.services.feed_validation_service import FeedValidator
 from transit_advisor.services.gtfs_import_service import GtfsImportService
+from transit_advisor.services.schedule_version_service import ScheduleVersionService
 
 
 class FakeAgencyRepository:
@@ -150,5 +154,26 @@ class FakeContainer:
         )
 
 
+class FakeFeedUploadContainer:
+    def __init__(self) -> None:
+        self.schedule_version_repository = FakeScheduleVersionRepository()
+
+        self.validator = FeedValidator()
+        self.checksum_service = ChecksumService()
+        self.schedule_version_service = ScheduleVersionService(
+            self.schedule_version_repository,
+        )
+
+        self.service = FeedUploadService(
+            validator=self.validator,
+            checksum_service=self.checksum_service,
+            schedule_version_service=self.schedule_version_service,
+        )
+
+
 def get_service() -> FakeContainer:
     return FakeContainer()
+
+
+def get_feed_upload_service() -> FakeFeedUploadContainer:
+    return FakeFeedUploadContainer()

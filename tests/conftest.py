@@ -1,11 +1,17 @@
+import io
 import os
+import zipfile
 from collections.abc import Generator
 
 import pytest
 from dotenv import load_dotenv
+from fastapi import FastAPI
+from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
 
+from transit_advisor.api.dependencies import get_feed_upload_service
+from transit_advisor.api.feeds import router as feeds_router
 from transit_advisor.domain.agency import Agency
 from transit_advisor.infrastructure.database.base import Base
 from transit_advisor.infrastructure.repositories.agency import (
@@ -21,6 +27,10 @@ from transit_advisor.infrastructure.repositories.stop import (
     SqlAlchemyStopRepository,
 )
 from transit_advisor.infrastructure.repositories.trip import SqlAlchemyTripRepository
+from transit_advisor.services.checksum_service import ChecksumService
+from transit_advisor.services.feed_upload_service import FeedUploadService
+from transit_advisor.services.feed_validation_service import FeedValidator
+from transit_advisor.services.schedule_version_service import ScheduleVersionService
 
 load_dotenv()
 
@@ -105,3 +115,38 @@ def schedule_version_repository(
     return SqlAlchemyScheduleVersionRepository(
         session,
     )
+
+
+def make_zip(files: dict[str, bytes]) -> bytes:
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, mode="w", compression=zipfile.ZIP_DEFLATED) as zf:
+        for name, content in files.items():
+            zf.writestr(name, content)
+    return buf.getvalue()
+
+
+@pytest.fixture
+def feed_upload_service(
+    schedule_version_repository: SqlAlchemyScheduleVersionRepository,
+) -> FeedUploadService:
+    return FeedUploadService(
+        validator=FeedValidator(),
+        checksum_service=ChecksumService(),
+        schedule_version_service=ScheduleVersionService(
+            repository=schedule_version_repository,
+        ),
+    )
+
+
+@pytest.fixture
+def app(feed_upload_service: FeedUploadService) -> Generator[FastAPI, None, None]:
+    app = FastAPI()
+    app.include_router(feeds_router)
+    app.dependency_overrides[get_feed_upload_service] = lambda: feed_upload_service
+    yield app
+    app.dependency_overrides.clear()
+
+
+@pytest.fixture
+def client(app: FastAPI) -> TestClient:
+    return TestClient(app)

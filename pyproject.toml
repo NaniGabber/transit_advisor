@@ -26,6 +26,8 @@ dependencies = [
     "psycopg[binary]",
     "python-dotenv",
     "pytest",
+    "python-multipart",
+    "httpx2",
 
 ]
 

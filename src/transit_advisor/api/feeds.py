@@ -33,7 +33,7 @@ async def upload(
         archive_files = _list_archive_files(archive_bytes)
     except zipfile.BadZipFile as exc:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail="Uploaded file is not a valid zip archive.",
         ) from exc
 
@@ -41,7 +41,7 @@ async def upload(
 
     if not result.imported and not result.duplicate:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail="Feed archive failed validation.",
         )
 

@@ -74,8 +74,14 @@ indent-style = "space"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-addopts = "-ra -q"
+pythonpath = ["src"]
 
+addopts = [
+    "--cov=src/transit_advisor",
+    "--cov-report=term-missing",
+    "--cov-report=xml",
+    "--cov-fail-under=70",
+]
 
 [tool.mypy]
 python_version = "3.12"
@@ -99,4 +105,24 @@ pretty = true
 # Ignore generated migration files
 exclude = [
     "^alembic/"
+]
+
+
+
+[tool.coverage.run]
+source = ["src/transit_advisor"]
+
+omit = [
+    "*/tests/*",
+    "*/alembic/*",
+]
+
+[tool.coverage.report]
+show_missing = true
+skip_covered = false
+
+exclude_lines = [
+    "pragma: no cover",
+    "if TYPE_CHECKING:",
+    "raise NotImplementedError",
 ]

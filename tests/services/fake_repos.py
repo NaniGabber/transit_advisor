@@ -1,5 +1,8 @@
 from transit_advisor.domain.agency import Agency
 from transit_advisor.domain.route import Route
+from transit_advisor.domain.scheduleversion import (
+    ScheduleVersion,
+)
 from transit_advisor.domain.stop import Stop
 from transit_advisor.domain.stoptime import StopTime
 from transit_advisor.domain.trip import Trip
@@ -102,6 +105,32 @@ class FakeStopTimeRepository:
         trip_id: int,
     ) -> list[StopTime]:
         return [stop_time for stop_time in self.saved if stop_time.trip_id == trip_id]
+
+
+class FakeScheduleVersionRepository:
+    def __init__(self) -> None:
+        self.saved: list[ScheduleVersion] = []
+
+    def save(
+        self,
+        version: ScheduleVersion,
+    ) -> ScheduleVersion:
+        if version.id is None:
+            version.id = len(self.saved) + 1
+
+        self.saved.append(version)
+
+        return version
+
+    def find_by_checksum(
+        self,
+        checksum: str,
+    ) -> ScheduleVersion | None:
+        for version in self.saved:
+            if version.checksum == checksum:
+                return version
+
+        return None
 
 
 class FakeContainer:

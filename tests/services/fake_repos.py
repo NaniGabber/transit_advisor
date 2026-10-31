@@ -1,4 +1,5 @@
 from transit_advisor.domain.agency import Agency
+from transit_advisor.domain.notification import Notification
 from transit_advisor.domain.route import Route
 from transit_advisor.domain.scheduleversion import (
     ScheduleVersion,
@@ -177,3 +178,39 @@ def get_service() -> FakeContainer:
 
 def get_feed_upload_service() -> FakeFeedUploadContainer:
     return FakeFeedUploadContainer()
+
+
+class FakeNotificationRepository:
+    def __init__(self) -> None:
+        self.saved: list[Notification] = []
+
+    def save(
+        self,
+        notification: Notification,
+    ) -> Notification:
+        if notification.id is None:
+            notification.id = len(self.saved) + 1
+
+        self.saved.append(notification)
+
+        return notification
+
+    def find_by_user_id(
+        self,
+        user_id: int,
+    ) -> list[Notification]:
+        return [
+            notification
+            for notification in self.saved
+            if notification.user_id == user_id
+        ]
+
+    def find_unread_by_user_id(
+        self,
+        user_id: int,
+    ) -> list[Notification]:
+        return [
+            notification
+            for notification in self.saved
+            if notification.user_id == user_id and notification.is_unread
+        ]

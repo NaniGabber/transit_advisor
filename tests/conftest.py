@@ -13,9 +13,13 @@ from sqlalchemy.orm import Session, sessionmaker
 from transit_advisor.api.dependencies import get_feed_upload_service
 from transit_advisor.api.feeds import router as feeds_router
 from transit_advisor.domain.agency import Agency
+from transit_advisor.domain.route import Route
 from transit_advisor.infrastructure.database.base import Base
 from transit_advisor.infrastructure.repositories.agency import (
     SqlAlchemyAgencyRepository,
+)
+from transit_advisor.infrastructure.repositories.notification import (
+    SqlAlchemyNotificationRepository,
 )
 from transit_advisor.infrastructure.repositories.route import (
     SqlAlchemyRouteRepository,
@@ -161,4 +165,27 @@ def subscription_repository(
 ) -> SqlAlchemySubscriptionRepository:
     return SqlAlchemySubscriptionRepository(
         session,
+    )
+
+
+@pytest.fixture
+def notification_repository(
+    session: Session,
+) -> SqlAlchemyNotificationRepository:
+    return SqlAlchemyNotificationRepository(session)
+
+
+@pytest.fixture
+def route(agency: Agency, route_repository: SqlAlchemyRouteRepository) -> Route:
+    if agency.id is None:
+        pytest.skip("agency not saved")
+    return route_repository.save(
+        Route(
+            id=None,
+            agency_id=agency.id,
+            route_id="11",
+            short_name="11",
+            long_name="Railway Station",
+            route_type=3,
+        )
     )

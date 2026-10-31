@@ -6,9 +6,14 @@ from sqlalchemy import (
     ForeignKey,
     UniqueConstraint,
 )
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import (
+    Mapped,
+    mapped_column,
+)
 
-from transit_advisor.infrastructure.database.base import Base
+from transit_advisor.infrastructure.database.base import (
+    Base,
+)
 
 
 class NotificationModel(Base):
@@ -22,15 +27,27 @@ class NotificationModel(Base):
         ),
     )
 
-    id: Mapped[int] = mapped_column(primary_key=True)
+    id: Mapped[int] = mapped_column(
+        primary_key=True,
+    )
 
-    subscription_id: Mapped[int] = mapped_column(ForeignKey("subscriptions.id"))
+    user_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id"),
+    )
 
-    schedule_version_id: Mapped[int] = mapped_column(ForeignKey("schedule_versions.id"))
+    subscription_id: Mapped[int] = mapped_column(
+        ForeignKey("subscriptions.id"),
+    )
+
+    schedule_version_id: Mapped[int] = mapped_column(
+        ForeignKey("schedule_versions.id"),
+    )
 
     message: Mapped[str]
 
-    created_at: Mapped[datetime] = mapped_column(DateTime)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime,
+    )
 
     is_read: Mapped[bool] = mapped_column(
         Boolean,

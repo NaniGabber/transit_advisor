@@ -5,7 +5,7 @@ from datetime import datetime
 @dataclass(slots=True)
 class Notification:
     id: int | None
-
+    user_id: int
     subscription_id: int
     schedule_version_id: int
 

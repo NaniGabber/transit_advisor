@@ -26,6 +26,9 @@ from transit_advisor.infrastructure.repositories.scheduleversion import (
 from transit_advisor.infrastructure.repositories.stop import (
     SqlAlchemyStopRepository,
 )
+from transit_advisor.infrastructure.repositories.subscription import (
+    SqlAlchemySubscriptionRepository,
+)
 from transit_advisor.infrastructure.repositories.trip import SqlAlchemyTripRepository
 from transit_advisor.services.checksum_service import ChecksumService
 from transit_advisor.services.feed_upload_service import FeedUploadService
@@ -150,3 +153,12 @@ def app(feed_upload_service: FeedUploadService) -> Generator[FastAPI, None, None
 @pytest.fixture
 def client(app: FastAPI) -> TestClient:
     return TestClient(app)
+
+
+@pytest.fixture
+def subscription_repository(
+    session: Session,
+) -> SqlAlchemySubscriptionRepository:
+    return SqlAlchemySubscriptionRepository(
+        session,
+    )

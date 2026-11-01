@@ -1,12 +1,5 @@
-from dataclasses import dataclass
-
 from transit_advisor.domain.route import Route
-
-
-@dataclass(slots=True)
-class ScheduleDiff:
-    added_routes: list[str]
-    removed_routes: list[str]
+from transit_advisor.domain.schedulediff import ScheduleDiff
 
 
 class ScheduleDiffService:

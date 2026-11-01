@@ -19,7 +19,7 @@ class SubscriptionModel(Base):
 
     user_id: Mapped[int]
 
-    route_id: Mapped[int] = mapped_column(ForeignKey("routes.id"))
+    route_id: Mapped[str] = mapped_column(ForeignKey("routes.id"))
 
     is_active: Mapped[bool] = mapped_column(
         Boolean,

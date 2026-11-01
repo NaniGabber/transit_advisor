@@ -14,7 +14,7 @@ class SubscriptionService:
     def subscribe(
         self,
         user_id: int,
-        route_id: int,
+        route_id: str,
     ) -> Subscription | None:
         existing = self._repository.find_by_user_and_route(
             user_id=user_id,

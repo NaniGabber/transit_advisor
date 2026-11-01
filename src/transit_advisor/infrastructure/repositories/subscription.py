@@ -60,7 +60,7 @@ class SqlAlchemySubscriptionRepository:
 
     def find_by_route_id(
         self,
-        route_id: int,
+        route_id: str,
     ) -> list[Subscription]:
         statement = select(
             SubscriptionModel,
@@ -84,7 +84,7 @@ class SqlAlchemySubscriptionRepository:
     def find_by_user_and_route(
         self,
         user_id: int,
-        route_id: int,
+        route_id: str,
     ) -> Subscription | None:
         statement = select(
             SubscriptionModel,

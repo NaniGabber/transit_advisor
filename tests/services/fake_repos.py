@@ -11,6 +11,7 @@ from transit_advisor.services.checksum_service import ChecksumService
 from transit_advisor.services.feed_upload_service import FeedUploadService
 from transit_advisor.services.feed_validation_service import FeedValidator
 from transit_advisor.services.gtfs_import_service import GtfsImportService
+from transit_advisor.services.notification_service import NotificationService
 from transit_advisor.services.schedule_version_service import ScheduleVersionService
 
 
@@ -214,3 +215,16 @@ class FakeNotificationRepository:
             for notification in self.saved
             if notification.user_id == user_id and notification.is_unread
         ]
+
+
+class FakeNotificationContainer:
+    def __init__(self) -> None:
+        self.notification_repository = FakeNotificationRepository()
+
+        self.service = NotificationService(
+            self.notification_repository,
+        )
+
+
+def get_notification_service() -> FakeNotificationContainer:
+    return FakeNotificationContainer()

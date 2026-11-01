@@ -1,0 +1,95 @@
+# Testing Report
+
+## Result
+
+PASSED
+
+## Coverage Overview
+
+- **Total coverage:** 95%
+- **Statements:** 775
+- **Covered lines:** 736
+- **Missing lines:** 39
+- **Excluded lines:** 0
+
+## Coverage by File
+
+| File | Statements | Missing | Coverage |
+|------|-----------:|--------:|---------:|
+| `src/transit_advisor/__init__.py` | 1 | 0 | 100% |
+| `src/transit_advisor/api/dependencies.py` | 18 | 5 | 72% |
+| `src/transit_advisor/api/feeds.py` | 26 | 0 | 100% |
+| `src/transit_advisor/api/schemas.py` | 5 | 0 | 100% |
+| `src/transit_advisor/domain/__init__.py` | 9 | 0 | 100% |
+| `src/transit_advisor/domain/agency.py` | 22 | 2 | 91% |
+| `src/transit_advisor/domain/notification.py` | 25 | 1 | 96% |
+| `src/transit_advisor/domain/repositories/agency.py` | 5 | 0 | 100% |
+| `src/transit_advisor/domain/repositories/notification.py` | 6 | 0 | 100% |
+| `src/transit_advisor/domain/repositories/route.py` | 5 | 0 | 100% |
+| `src/transit_advisor/domain/repositories/scheduleversion.py` | 5 | 0 | 100% |
+| `src/transit_advisor/domain/repositories/stop.py` | 5 | 0 | 100% |
+| `src/transit_advisor/domain/repositories/stoptime.py` | 5 | 0 | 100% |
+| `src/transit_advisor/domain/repositories/trip.py` | 5 | 0 | 100% |
+| `src/transit_advisor/domain/route.py` | 39 | 7 | 82% |
+| `src/transit_advisor/domain/schedulediff.py` | 12 | 0 | 100% |
+| `src/transit_advisor/domain/scheduleversion.py` | 15 | 1 | 93% |
+| `src/transit_advisor/domain/stop.py` | 26 | 3 | 88% |
+| `src/transit_advisor/domain/stoptime.py` | 23 | 1 | 96% |
+| `src/transit_advisor/domain/subscription.py` | 15 | 1 | 93% |
+| `src/transit_advisor/domain/trip.py` | 19 | 3 | 84% |
+| `src/transit_advisor/domain/upload_result.py` | 6 | 0 | 100% |
+| `src/transit_advisor/infrastructure/archive/gtfs_archive_reader.py` | 17 | 2 | 88% |
+| `src/transit_advisor/infrastructure/database/base.py` | 3 | 0 | 100% |
+| `src/transit_advisor/infrastructure/database/models/agency.py` | 13 | 0 | 100% |
+| `src/transit_advisor/infrastructure/database/models/notification.py` | 14 | 0 | 100% |
+| `src/transit_advisor/infrastructure/database/models/route.py` | 15 | 0 | 100% |
+| `src/transit_advisor/infrastructure/database/models/scheduleversion.py` | 9 | 0 | 100% |
+| `src/transit_advisor/infrastructure/database/models/stop.py` | 12 | 0 | 100% |
+| `src/transit_advisor/infrastructure/database/models/subscription.py` | 10 | 0 | 100% |
+| `src/transit_advisor/infrastructure/database/models/trip.py` | 9 | 0 | 100% |
+| `src/transit_advisor/infrastructure/gtfs/mappers/agency.py` | 10 | 0 | 100% |
+| `src/transit_advisor/infrastructure/gtfs/mappers/route.py` | 10 | 0 | 100% |
+| `src/transit_advisor/infrastructure/gtfs/mappers/stop.py` | 11 | 0 | 100% |
+| `src/transit_advisor/infrastructure/gtfs/mappers/stoptime.py` | 10 | 0 | 100% |
+| `src/transit_advisor/infrastructure/gtfs/mappers/trip.py` | 7 | 0 | 100% |
+| `src/transit_advisor/infrastructure/gtfs/parsing.py` | 12 | 0 | 100% |
+| `src/transit_advisor/infrastructure/repositories/agency.py` | 19 | 0 | 100% |
+| `src/transit_advisor/infrastructure/repositories/in_memory_scheduleversion.py` | 11 | 5 | 55% |
+| `src/transit_advisor/infrastructure/repositories/notification.py` | 21 | 0 | 100% |
+| `src/transit_advisor/infrastructure/repositories/route.py` | 19 | 0 | 100% |
+| `src/transit_advisor/infrastructure/repositories/scheduleversion.py` | 19 | 0 | 100% |
+| `src/transit_advisor/infrastructure/repositories/stop.py` | 19 | 0 | 100% |
+| `src/transit_advisor/infrastructure/repositories/subscription.py` | 27 | 0 | 100% |
+| `src/transit_advisor/infrastructure/repositories/trip.py` | 19 | 0 | 100% |
+| `src/transit_advisor/main.py` | 5 | 5 | 0% |
+| `src/transit_advisor/services/__init__.py` | 0 | 0 | 100% |
+| `src/transit_advisor/services/checksum_service.py` | 4 | 0 | 100% |
+| `src/transit_advisor/services/feed_upload_service.py` | 17 | 0 | 100% |
+| `src/transit_advisor/services/feed_validation_service.py` | 6 | 0 | 100% |
+| `src/transit_advisor/services/gtfs_import_service.py` | 78 | 2 | 97% |
+| `src/transit_advisor/services/notification_service.py` | 22 | 1 | 95% |
+| `src/transit_advisor/services/schedule_diff_service.py` | 9 | 0 | 100% |
+| `src/transit_advisor/services/schedule_version_service.py` | 11 | 0 | 100% |
+| `src/transit_advisor/services/subscription_service.py` | 10 | 0 | 100% |
+
+## Uncovered Lines
+
+- `src/transit_advisor/api/dependencies.py`: 17, 21, 25, 33, 43
+- `src/transit_advisor/domain/agency.py`: 28, 31
+- `src/transit_advisor/domain/notification.py`: 30
+- `src/transit_advisor/domain/route.py`: 33, 36, 39, 46, 50, 54, 58
+- `src/transit_advisor/domain/scheduleversion.py`: 21
+- `src/transit_advisor/domain/stop.py`: 27, 30, 40
+- `src/transit_advisor/domain/stoptime.py`: 34
+- `src/transit_advisor/domain/subscription.py`: 22
+- `src/transit_advisor/domain/trip.py`: 21, 24, 28
+- `src/transit_advisor/infrastructure/archive/gtfs_archive_reader.py`: 33, 34
+- `src/transit_advisor/infrastructure/repositories/in_memory_scheduleversion.py`: 9, 14, 15, 20, 21
+- `src/transit_advisor/main.py`: 1, 3, 6, 7, 8
+- `src/transit_advisor/services/gtfs_import_service.py`: 65, 146
+- `src/transit_advisor/services/notification_service.py`: 55
+
+## Environment
+
+Generated automatically from pytest + pytest-cov results.
+Raw report: `tests/result.json`

@@ -232,3 +232,25 @@ def archive_path(
         )
 
     return path
+
+
+@pytest.fixture
+def route_factory(
+    route_repository: SqlAlchemyRouteRepository,
+    agency: Agency,
+):
+    def create(route_id: str) -> Route:
+        assert agency.id is not None
+
+        return route_repository.save(
+            Route(
+                id=None,
+                agency_id=agency.id,
+                route_id=route_id,
+                short_name=route_id,
+                long_name=f"Route {route_id}",
+                route_type=3,
+            )
+        )
+
+    return create

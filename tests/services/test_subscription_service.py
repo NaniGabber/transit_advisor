@@ -1,3 +1,5 @@
+from collections.abc import Callable
+
 from transit_advisor.domain.route import Route
 from transit_advisor.infrastructure.repositories.subscription import (
     SqlAlchemySubscriptionRepository,
@@ -49,7 +51,7 @@ def test_duplicate_subscription_rejected(
 
 def test_user_can_subscribe_to_multiple_routes(
     subscription_repository: SqlAlchemySubscriptionRepository,
-    route_factory,
+    route_factory: Callable[[str], Route],
 ) -> None:
     route1 = route_factory("11")
     route2 = route_factory("15")
@@ -57,12 +59,12 @@ def test_user_can_subscribe_to_multiple_routes(
     service = SubscriptionService(
         subscription_repository,
     )
-
+    assert route1.id is not None
     first = service.subscribe(
         user_id=1,
         route_id=route1.id,
     )
-
+    assert route2.id is not None
     second = service.subscribe(
         user_id=1,
         route_id=route2.id,

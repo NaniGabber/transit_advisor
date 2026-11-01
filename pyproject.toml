@@ -26,6 +26,8 @@ dependencies = [
     "psycopg[binary]",
     "python-dotenv",
     "pytest",
+    "python-multipart",
+    "httpx2",
 
 ]
 
@@ -37,6 +39,8 @@ dev = [
     "ruff>=0.6.0",
     "black>=24.0.0",
     "mypy>=2.4.0",
+    "pytest-json-report",
+
 ]
 
 [project.urls]
@@ -48,6 +52,9 @@ package-dir = { "" = "src" }
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.setuptools.package-data]
+transit_advisor = ["py.typed"]
 
 [tool.black]
 line-length = 88
@@ -85,6 +92,7 @@ addopts = [
 
 [tool.mypy]
 python_version = "3.12"
+mypy_path = "src"
 
 disallow_untyped_defs = true
 disallow_incomplete_defs = true

@@ -1,4 +1,5 @@
 from transit_advisor.domain.agency import Agency
+from transit_advisor.domain.notification import Notification
 from transit_advisor.domain.route import Route
 from transit_advisor.domain.scheduleversion import (
     ScheduleVersion,
@@ -6,7 +7,12 @@ from transit_advisor.domain.scheduleversion import (
 from transit_advisor.domain.stop import Stop
 from transit_advisor.domain.stoptime import StopTime
 from transit_advisor.domain.trip import Trip
+from transit_advisor.services.checksum_service import ChecksumService
+from transit_advisor.services.feed_upload_service import FeedUploadService
+from transit_advisor.services.feed_validation_service import FeedValidator
 from transit_advisor.services.gtfs_import_service import GtfsImportService
+from transit_advisor.services.notification_service import NotificationService
+from transit_advisor.services.schedule_version_service import ScheduleVersionService
 
 
 class FakeAgencyRepository:
@@ -150,5 +156,75 @@ class FakeContainer:
         )
 
 
+class FakeFeedUploadContainer:
+    def __init__(self) -> None:
+        self.schedule_version_repository = FakeScheduleVersionRepository()
+
+        self.validator = FeedValidator()
+        self.checksum_service = ChecksumService()
+        self.schedule_version_service = ScheduleVersionService(
+            self.schedule_version_repository,
+        )
+
+        self.service = FeedUploadService(
+            validator=self.validator,
+            checksum_service=self.checksum_service,
+            schedule_version_service=self.schedule_version_service,
+        )
+
+
 def get_service() -> FakeContainer:
     return FakeContainer()
+
+
+def get_feed_upload_service() -> FakeFeedUploadContainer:
+    return FakeFeedUploadContainer()
+
+
+class FakeNotificationRepository:
+    def __init__(self) -> None:
+        self.saved: list[Notification] = []
+
+    def save(
+        self,
+        notification: Notification,
+    ) -> Notification:
+        if notification.id is None:
+            notification.id = len(self.saved) + 1
+
+        self.saved.append(notification)
+
+        return notification
+
+    def find_by_user_id(
+        self,
+        user_id: int,
+    ) -> list[Notification]:
+        return [
+            notification
+            for notification in self.saved
+            if notification.user_id == user_id
+        ]
+
+    def find_unread_by_user_id(
+        self,
+        user_id: int,
+    ) -> list[Notification]:
+        return [
+            notification
+            for notification in self.saved
+            if notification.user_id == user_id and notification.is_unread
+        ]
+
+
+class FakeNotificationContainer:
+    def __init__(self) -> None:
+        self.notification_repository = FakeNotificationRepository()
+
+        self.service = NotificationService(
+            self.notification_repository,
+        )
+
+
+def get_notification_service() -> FakeNotificationContainer:
+    return FakeNotificationContainer()

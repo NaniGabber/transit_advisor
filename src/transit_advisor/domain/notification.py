@@ -5,7 +5,7 @@ from datetime import datetime
 @dataclass(slots=True)
 class Notification:
     id: int | None
-
+    user_id: int
     subscription_id: int
     schedule_version_id: int
 
@@ -15,6 +15,8 @@ class Notification:
     is_read: bool = False
 
     def __post_init__(self) -> None:
+        if self.user_id <= 0:
+            raise ValueError("user_id must be positive")
         if self.subscription_id <= 0:
             raise ValueError("subscription_id must be positive")
 

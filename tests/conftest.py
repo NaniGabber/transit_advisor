@@ -1,7 +1,7 @@
 import io
 import os
 import zipfile
-from collections.abc import Generator
+from collections.abc import Callable, Generator
 from pathlib import Path
 
 import pytest
@@ -238,7 +238,7 @@ def archive_path(
 def route_factory(
     route_repository: SqlAlchemyRouteRepository,
     agency: Agency,
-):
+) -> Callable[[str], Route]:
     def create(route_id: str) -> Route:
         assert agency.id is not None
 

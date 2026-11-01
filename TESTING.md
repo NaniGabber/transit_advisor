@@ -8,8 +8,8 @@ PASSED
 
 - **Total coverage:** 95%
 - **Statements:** 775
-- **Covered lines:** 736
-- **Missing lines:** 39
+- **Covered lines:** 740
+- **Missing lines:** 35
 - **Excluded lines:** 0
 
 ## Coverage by File
@@ -30,7 +30,7 @@ PASSED
 | `src/transit_advisor/domain/repositories/stop.py` | 5 | 0 | 100% |
 | `src/transit_advisor/domain/repositories/stoptime.py` | 5 | 0 | 100% |
 | `src/transit_advisor/domain/repositories/trip.py` | 5 | 0 | 100% |
-| `src/transit_advisor/domain/route.py` | 39 | 7 | 82% |
+| `src/transit_advisor/domain/route.py` | 39 | 3 | 92% |
 | `src/transit_advisor/domain/schedulediff.py` | 12 | 0 | 100% |
 | `src/transit_advisor/domain/scheduleversion.py` | 15 | 1 | 93% |
 | `src/transit_advisor/domain/stop.py` | 26 | 3 | 88% |
@@ -77,7 +77,7 @@ PASSED
 - `src/transit_advisor/api/dependencies.py`: 17, 21, 25, 33, 43
 - `src/transit_advisor/domain/agency.py`: 28, 31
 - `src/transit_advisor/domain/notification.py`: 30
-- `src/transit_advisor/domain/route.py`: 33, 36, 39, 46, 50, 54, 58
+- `src/transit_advisor/domain/route.py`: 33, 36, 39
 - `src/transit_advisor/domain/scheduleversion.py`: 21
 - `src/transit_advisor/domain/stop.py`: 27, 30, 40
 - `src/transit_advisor/domain/stoptime.py`: 34

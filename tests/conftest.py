@@ -11,16 +11,18 @@ from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
 
-from transit_advisor.api.dependencies import get_feed_upload_service
+from tests.services.fake_repos import FakeNotificationRepository
+from transit_advisor.api.dependencies import (
+    get_feed_upload_service,
+    get_notification_repository,
+)
 from transit_advisor.api.feeds import router as feeds_router
+from transit_advisor.api.notification import router as notifications_router
 from transit_advisor.domain.agency import Agency
 from transit_advisor.domain.route import Route
 from transit_advisor.infrastructure.database.base import Base
 from transit_advisor.infrastructure.repositories.agency import (
     SqlAlchemyAgencyRepository,
-)
-from transit_advisor.infrastructure.repositories.notification import (
-    SqlAlchemyNotificationRepository,
 )
 from transit_advisor.infrastructure.repositories.route import (
     SqlAlchemyRouteRepository,
@@ -150,6 +152,7 @@ def feed_upload_service(
 def app(feed_upload_service: FeedUploadService) -> Generator[FastAPI, None, None]:
     app = FastAPI()
     app.include_router(feeds_router)
+    app.include_router(notifications_router)
     app.dependency_overrides[get_feed_upload_service] = lambda: feed_upload_service
     yield app
     app.dependency_overrides.clear()
@@ -171,9 +174,14 @@ def subscription_repository(
 
 @pytest.fixture
 def notification_repository(
-    session: Session,
-) -> SqlAlchemyNotificationRepository:
-    return SqlAlchemyNotificationRepository(session)
+    app: FastAPI,
+) -> Generator[FakeNotificationRepository, None, None]:
+    repo = FakeNotificationRepository()
+    app.dependency_overrides[get_notification_repository] = lambda: repo
+    try:
+        yield repo
+    finally:
+        app.dependency_overrides.clear()
 
 
 @pytest.fixture

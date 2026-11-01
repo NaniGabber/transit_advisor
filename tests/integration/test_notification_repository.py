@@ -32,7 +32,7 @@ def _make_route(agency_id: int, route_id: str) -> Route:
     )
 
 
-def _make_subscription(user_id: int, route_id: str) -> Subscription:
+def _make_subscription(user_id: int, route_id: int) -> Subscription:
     return Subscription(
         id=None,
         user_id=user_id,
@@ -81,9 +81,7 @@ def _seed_parents(
     if route.id is None:
         raise RuntimeError("route repository did not assign an id")
 
-    subscription = subscription_repository.save(
-        _make_subscription(user_id, route.route_id)
-    )
+    subscription = subscription_repository.save(_make_subscription(user_id, route.id))
     if subscription.id is None:
         raise RuntimeError("subscription repository did not assign an id")
 
@@ -220,9 +218,7 @@ def test_find_unread_by_user_id_returns_only_unread_notifications(
     if route_2.id is None:
         raise RuntimeError("route repository did not assign an id")
 
-    subscription_2 = subscription_repository.save(
-        _make_subscription(1, route_2.route_id)
-    )
+    subscription_2 = subscription_repository.save(_make_subscription(1, route_2.id))
     if subscription_2.id is None:
         raise RuntimeError("subscription repository did not assign an id")
 

@@ -6,11 +6,11 @@ from transit_advisor.domain.notification import (
 from transit_advisor.domain.repositories.notification import (
     NotificationRepository,
 )
-from transit_advisor.domain.schedulediff import (
-    ScheduleDiff,
-)
 from transit_advisor.domain.subscription import (
     Subscription,
+)
+from transit_advisor.services.schedule_diff_service import (
+    ScheduleDiff,
 )
 
 
@@ -54,7 +54,7 @@ class NotificationService:
                 if subscription.id is None:
                     continue
 
-                if subscription.route_id != route_id:
+                if subscription.route_id != int(route_id):
                     continue
 
                 self.create_notification(

@@ -1,5 +1,6 @@
 import pytest
-from transit_advisor.domain.schedule_diff import (
+
+from transit_advisor.domain.schedulediff import (
     ScheduleDiff,
 )
 

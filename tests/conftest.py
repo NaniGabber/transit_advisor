@@ -2,6 +2,7 @@ import io
 import os
 import zipfile
 from collections.abc import Generator
+from pathlib import Path
 
 import pytest
 from dotenv import load_dotenv
@@ -189,3 +190,29 @@ def route(agency: Agency, route_repository: SqlAlchemyRouteRepository) -> Route:
             route_type=3,
         )
     )
+
+
+@pytest.fixture
+def archive_path(tmp_path: Path) -> Path:
+    path = tmp_path / "feed.zip"
+
+    with zipfile.ZipFile(
+        path,
+        "w",
+    ) as archive:
+        archive.writestr(
+            "agency.txt",
+            "agency_id,agency_name\nmetro,Metro\n",
+        )
+
+        archive.writestr(
+            "routes.txt",
+            ("route_id,route_short_name\n11,11\n15,15\n"),
+        )
+
+        archive.writestr(
+            "stops.txt",
+            ("stop_id,stop_name\n1,Station\n2,Center\n"),
+        )
+
+    return path

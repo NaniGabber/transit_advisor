@@ -33,3 +33,22 @@ class NotificationResponse(BaseModel):
     is_read: bool = Field(
         ..., description="True if the user has already read the notification."
     )
+
+
+class CreateSubscriptionRequest(BaseModel):
+    user_id: int = Field(
+        ...,
+        description="Identifier of the subscribed user.",
+    )
+
+    route_id: int = Field(
+        ...,
+        description="Internal route identifier.",
+    )
+
+
+class SubscriptionResponse(BaseModel):
+    id: int
+    user_id: int
+    route_id: int
+    is_active: bool

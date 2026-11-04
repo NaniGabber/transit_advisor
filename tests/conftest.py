@@ -18,6 +18,7 @@ from transit_advisor.api.dependencies import (
 )
 from transit_advisor.api.feeds import router as feeds_router
 from transit_advisor.api.notification import router as notifications_router
+from transit_advisor.api.subscription import router as subscriptions_router
 from transit_advisor.domain.agency import Agency
 from transit_advisor.domain.route import Route
 from transit_advisor.infrastructure.database.base import Base
@@ -149,12 +150,25 @@ def feed_upload_service(
 
 
 @pytest.fixture
-def app(feed_upload_service: FeedUploadService) -> Generator[FastAPI, None, None]:
+def app(
+    feed_upload_service: FeedUploadService,
+) -> Generator[FastAPI, None, None]:
     app = FastAPI()
-    app.include_router(feeds_router)
-    app.include_router(notifications_router)
+
+    app.include_router(
+        feeds_router,
+    )
+
+    app.include_router(
+        subscriptions_router,
+    )
+    app.include_router(
+        notifications_router,
+    )
     app.dependency_overrides[get_feed_upload_service] = lambda: feed_upload_service
+
     yield app
+
     app.dependency_overrides.clear()
 
 

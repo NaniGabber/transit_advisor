@@ -2,6 +2,7 @@ import io
 import os
 import zipfile
 from collections.abc import Callable, Generator
+from datetime import datetime
 from pathlib import Path
 
 import pytest
@@ -21,6 +22,8 @@ from transit_advisor.api.notification import router as notifications_router
 from transit_advisor.api.subscription import router as subscriptions_router
 from transit_advisor.domain.agency import Agency
 from transit_advisor.domain.route import Route
+from transit_advisor.domain.scheduleversion import ScheduleVersion
+from transit_advisor.domain.subscription import Subscription
 from transit_advisor.infrastructure.database.base import Base
 from transit_advisor.infrastructure.repositories.agency import (
     SqlAlchemyAgencyRepository,
@@ -276,3 +279,52 @@ def route_factory(
         )
 
     return create
+
+
+@pytest.fixture
+def notification_parents(
+    agency: Agency,
+    route_repository: SqlAlchemyRouteRepository,
+    subscription_repository: SqlAlchemySubscriptionRepository,
+    schedule_version_repository: SqlAlchemyScheduleVersionRepository,
+) -> tuple[int, int]:
+    if agency.id is None:
+        pytest.skip("agency not saved")
+
+    route = route_repository.save(
+        Route(
+            id=None,
+            agency_id=agency.id,
+            route_id="11",
+            short_name="11",
+            long_name="Route 11",
+            route_type=3,
+        )
+    )
+
+    assert route.id is not None
+
+    subscription = subscription_repository.save(
+        Subscription(
+            id=None,
+            user_id=1,
+            route_id=route.id,
+        )
+    )
+
+    assert subscription.id is not None
+
+    version = schedule_version_repository.save(
+        ScheduleVersion(
+            id=None,
+            checksum="a" * 64,
+            imported_at=datetime.now(),
+        )
+    )
+
+    assert version.id is not None
+
+    return (
+        subscription.id,
+        version.id,
+    )

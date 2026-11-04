@@ -6,6 +6,7 @@ from transit_advisor.domain.scheduleversion import (
 )
 from transit_advisor.domain.stop import Stop
 from transit_advisor.domain.stoptime import StopTime
+from transit_advisor.domain.subscription import Subscription
 from transit_advisor.domain.trip import Trip
 from transit_advisor.services.checksum_service import ChecksumService
 from transit_advisor.services.feed_upload_service import FeedUploadService
@@ -228,3 +229,39 @@ class FakeNotificationContainer:
 
 def get_notification_service() -> FakeNotificationContainer:
     return FakeNotificationContainer()
+
+
+class FakeSubscriptionRepository:
+    def __init__(self) -> None:
+        self.saved: list[Subscription] = []
+
+    def save(
+        self,
+        subscription: Subscription,
+    ) -> Subscription:
+        if subscription.id is None:
+            subscription.id = len(self.saved) + 1
+
+        self.saved.append(subscription)
+
+        return subscription
+
+    def find_by_route_id(
+        self,
+        route_id: int,
+    ) -> list[Subscription]:
+        return [
+            subscription
+            for subscription in self.saved
+            if subscription.route_id == route_id
+        ]
+
+    def find_by_user_id(
+        self,
+        user_id: int,
+    ) -> list[Subscription]:
+        return [
+            subscription
+            for subscription in self.saved
+            if subscription.user_id == user_id
+        ]

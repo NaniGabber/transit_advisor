@@ -1,3 +1,5 @@
+from sqlalchemy.orm import Session
+
 from transit_advisor.api.dependencies import (
     get_checksum_service,
     get_feed_validator,
@@ -35,7 +37,7 @@ def test_get_checksum_service() -> None:
 
 
 def test_get_notification_service(
-    session,
+    session: Session,
 ) -> None:
     repository = get_notification_repository(
         session,
@@ -52,7 +54,7 @@ def test_get_notification_service(
 
 
 def test_get_subscription_service(
-    session,
+    session: Session,
 ) -> None:
     repository = get_subscription_repository(
         session,

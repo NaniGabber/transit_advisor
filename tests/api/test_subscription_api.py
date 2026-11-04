@@ -1,3 +1,5 @@
+from fastapi.testclient import TestClient
+
 from transit_advisor.domain.route import Route
 from transit_advisor.domain.subscription import Subscription
 from transit_advisor.infrastructure.repositories.subscription import (
@@ -6,7 +8,7 @@ from transit_advisor.infrastructure.repositories.subscription import (
 
 
 def test_create_subscription(
-    client,
+    client: TestClient,
     route: Route,
 ) -> None:
     assert route.id is not None
@@ -28,7 +30,7 @@ def test_create_subscription(
 
 
 def test_duplicate_subscription_returns_409(
-    client,
+    client: TestClient,
     route: Route,
 ) -> None:
     assert route.id is not None
@@ -53,7 +55,7 @@ def test_duplicate_subscription_returns_409(
 
 
 def test_get_user_subscriptions(
-    client,
+    client: TestClient,
     subscription_repository: SqlAlchemySubscriptionRepository,
     route: Route,
 ) -> None:
@@ -81,7 +83,7 @@ def test_get_user_subscriptions(
 
 
 def test_get_empty_subscriptions(
-    client,
+    client: TestClient,
 ) -> None:
     response = client.get(
         "/subscriptions/users/999",
@@ -92,7 +94,7 @@ def test_get_empty_subscriptions(
 
 
 def test_create_subscription_with_invalid_payload(
-    client,
+    client: TestClient,
 ) -> None:
     response = client.post(
         "/subscriptions",

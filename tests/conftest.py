@@ -13,7 +13,6 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
 
 from tests.services.fake_repos import (
-    FakeGtfsArchiveReader,
     FakeGtfsImportService,
     FakeNotificationRepository,
 )
@@ -28,6 +27,7 @@ from transit_advisor.domain.agency import Agency
 from transit_advisor.domain.route import Route
 from transit_advisor.domain.scheduleversion import ScheduleVersion
 from transit_advisor.domain.subscription import Subscription
+from transit_advisor.infrastructure.archive.gtfs_archive_reader import GtfsArchiveReader
 from transit_advisor.infrastructure.database.base import Base
 from transit_advisor.infrastructure.repositories.agency import (
     SqlAlchemyAgencyRepository,
@@ -153,7 +153,7 @@ def feed_upload_service(
         schedule_version_service=ScheduleVersionService(
             repository=schedule_version_repository,
         ),
-        archive_reader=FakeGtfsArchiveReader(),
+        archive_reader=GtfsArchiveReader(),
         import_service=FakeGtfsImportService(),
     )
 

@@ -4,31 +4,116 @@ from typing import Annotated
 from fastapi import Depends
 from sqlalchemy.orm import Session, sessionmaker
 
+from transit_advisor.infrastructure.archive.gtfs_archive_reader import GtfsArchiveReader
 from transit_advisor.infrastructure.database.base import engine
+from transit_advisor.infrastructure.repositories.agency import (
+    SqlAlchemyAgencyRepository,
+)
 from transit_advisor.infrastructure.repositories.in_memory_scheduleversion import (
     InMemoryScheduleVersionRepository,
 )
 from transit_advisor.infrastructure.repositories.notification import (
     SqlAlchemyNotificationRepository,
 )
+from transit_advisor.infrastructure.repositories.route import SqlAlchemyRouteRepository
+from transit_advisor.infrastructure.repositories.stop import SqlAlchemyStopRepository
+from transit_advisor.infrastructure.repositories.stoptime import (
+    SqlAlchemyStopTimeRepository,
+)
 from transit_advisor.infrastructure.repositories.subscription import (
     SqlAlchemySubscriptionRepository,
 )
+from transit_advisor.infrastructure.repositories.trip import SqlAlchemyTripRepository
 from transit_advisor.services.checksum_service import ChecksumService
 from transit_advisor.services.feed_upload_service import FeedUploadService
 from transit_advisor.services.feed_validation_service import FeedValidator
+from transit_advisor.services.gtfs_import_service import GtfsImportService
 from transit_advisor.services.notification_service import NotificationService
-from transit_advisor.services.schedule_version_service import (
-    ScheduleVersionService,
-)
-from transit_advisor.services.subscription_service import (
-    SubscriptionService,
-)
+from transit_advisor.services.schedule_version_service import ScheduleVersionService
+from transit_advisor.services.subscription_service import SubscriptionService
 
 # TODO:
 # Replace with SqlAlchemyScheduleVersionRepository
 # when feed version persistence is fully integrated.
 _repository_singleton = InMemoryScheduleVersionRepository()
+
+SessionLocal = sessionmaker(
+    bind=engine,
+    autoflush=False,
+    autocommit=False,
+)
+
+
+def get_session() -> Generator[Session, None, None]:
+    session = SessionLocal()
+    try:
+        yield session
+    finally:
+        session.close()
+
+
+# GTFS Dependencies
+
+
+def get_agency_repository(
+    session: Annotated[Session, Depends(get_session)],
+) -> SqlAlchemyAgencyRepository:
+    return SqlAlchemyAgencyRepository(session)
+
+
+def get_route_repository(
+    session: Annotated[Session, Depends(get_session)],
+) -> SqlAlchemyRouteRepository:
+    return SqlAlchemyRouteRepository(session)
+
+
+def get_stop_repository(
+    session: Annotated[Session, Depends(get_session)],
+) -> SqlAlchemyStopRepository:
+    return SqlAlchemyStopRepository(session)
+
+
+def get_trip_repository(
+    session: Annotated[Session, Depends(get_session)],
+) -> SqlAlchemyTripRepository:
+    return SqlAlchemyTripRepository(session)
+
+
+def get_stoptime_repository(
+    session: Annotated[Session, Depends(get_session)],
+) -> SqlAlchemyStopTimeRepository:
+    return SqlAlchemyStopTimeRepository(session)
+
+
+def get_gtfs_import_service(
+    agency_repository: Annotated[
+        SqlAlchemyAgencyRepository,
+        Depends(get_agency_repository),
+    ],
+    route_repository: Annotated[
+        SqlAlchemyRouteRepository,
+        Depends(get_route_repository),
+    ],
+    stop_repository: Annotated[
+        SqlAlchemyStopRepository,
+        Depends(get_stop_repository),
+    ],
+    trip_repository: Annotated[
+        SqlAlchemyTripRepository,
+        Depends(get_trip_repository),
+    ],
+    stoptime_repository: Annotated[
+        SqlAlchemyStopTimeRepository,
+        Depends(get_stoptime_repository),
+    ],
+) -> GtfsImportService:
+    return GtfsImportService(
+        agency_repository=agency_repository,
+        route_repository=route_repository,
+        stop_repository=stop_repository,
+        trip_repository=trip_repository,
+        stoptime_repository=stoptime_repository,
+    )
 
 
 # Feed Upload Dependencies
@@ -58,42 +143,24 @@ def get_schedule_version_service(
 
 
 def get_feed_upload_service(
-    validator: Annotated[
-        FeedValidator,
-        Depends(get_feed_validator),
-    ],
-    checksum_service: Annotated[
-        ChecksumService,
-        Depends(get_checksum_service),
-    ],
+    validator: Annotated[FeedValidator, Depends(get_feed_validator)],
+    checksum_service: Annotated[ChecksumService, Depends(get_checksum_service)],
     schedule_version_service: Annotated[
         ScheduleVersionService,
         Depends(get_schedule_version_service),
+    ],
+    import_service: Annotated[
+        GtfsImportService,
+        Depends(get_gtfs_import_service),
     ],
 ) -> FeedUploadService:
     return FeedUploadService(
         validator=validator,
         checksum_service=checksum_service,
         schedule_version_service=schedule_version_service,
+        archive_reader=GtfsArchiveReader(),
+        import_service=import_service,
     )
-
-
-# Database Dependencies
-
-SessionLocal = sessionmaker(
-    bind=engine,
-    autoflush=False,
-    autocommit=False,
-)
-
-
-def get_session() -> Generator[Session, None, None]:
-    session = SessionLocal()
-
-    try:
-        yield session
-    finally:
-        session.close()
 
 
 # Notification Dependencies

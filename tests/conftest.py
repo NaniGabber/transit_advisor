@@ -12,7 +12,11 @@ from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
 
-from tests.services.fake_repos import FakeNotificationRepository
+from tests.services.fake_repos import (
+    FakeGtfsArchiveReader,
+    FakeGtfsImportService,
+    FakeNotificationRepository,
+)
 from transit_advisor.api.dependencies import (
     get_feed_upload_service,
     get_notification_repository,
@@ -149,6 +153,8 @@ def feed_upload_service(
         schedule_version_service=ScheduleVersionService(
             repository=schedule_version_repository,
         ),
+        archive_reader=FakeGtfsArchiveReader(),
+        import_service=FakeGtfsImportService(),
     )
 
 

@@ -1,13 +1,15 @@
+from collections.abc import Iterator
+from pathlib import Path
+
 from transit_advisor.domain.agency import Agency
 from transit_advisor.domain.notification import Notification
 from transit_advisor.domain.route import Route
-from transit_advisor.domain.scheduleversion import (
-    ScheduleVersion,
-)
+from transit_advisor.domain.scheduleversion import ScheduleVersion
 from transit_advisor.domain.stop import Stop
 from transit_advisor.domain.stoptime import StopTime
 from transit_advisor.domain.subscription import Subscription
 from transit_advisor.domain.trip import Trip
+from transit_advisor.infrastructure.archive.gtfs_archive_reader import GtfsArchiveReader
 from transit_advisor.services.checksum_service import ChecksumService
 from transit_advisor.services.feed_upload_service import FeedUploadService
 from transit_advisor.services.feed_validation_service import FeedValidator
@@ -140,6 +142,37 @@ class FakeScheduleVersionRepository:
         return None
 
 
+class FakeGtfsArchiveReader(GtfsArchiveReader):
+    def __init__(self, files: set[str] | None = None) -> None:
+        self._files = files or {
+            "agency.txt",
+            "routes.txt",
+            "stops.txt",
+            "trips.txt",
+            "stop_times.txt",
+        }
+
+    def list_files(self, archive_path: Path) -> set[str]:
+        return self._files
+
+    def read_csv(self, archive_path: Path, file_name: str) -> Iterator[dict[str, str]]:
+        return iter([])
+
+    def exists(self, archive_path: Path, file_name: str) -> bool:
+        return file_name in self._files
+
+
+class FakeGtfsImportService(GtfsImportService):
+    def __init__(self) -> None:
+        self.imported_count = 0
+
+    def import_all(
+        self, archive_path: Path, reader: GtfsArchiveReader
+    ) -> dict[str, int]:
+        self.imported_count += 1
+        return {"agencies": 1, "routes": 1, "stops": 1, "trips": 1, "stop_times": 1}
+
+
 class FakeContainer:
     def __init__(self) -> None:
         self.agency_repository = FakeAgencyRepository()
@@ -158,8 +191,10 @@ class FakeContainer:
 
 
 class FakeFeedUploadContainer:
-    def __init__(self) -> None:
+    def __init__(self, files: set[str] | None = None) -> None:
         self.schedule_version_repository = FakeScheduleVersionRepository()
+        self.archive_reader = FakeGtfsArchiveReader(files)
+        self.import_service = FakeGtfsImportService()
 
         self.validator = FeedValidator()
         self.checksum_service = ChecksumService()
@@ -171,6 +206,8 @@ class FakeFeedUploadContainer:
             validator=self.validator,
             checksum_service=self.checksum_service,
             schedule_version_service=self.schedule_version_service,
+            archive_reader=self.archive_reader,
+            import_service=self.import_service,
         )
 
 
@@ -178,8 +215,8 @@ def get_service() -> FakeContainer:
     return FakeContainer()
 
 
-def get_feed_upload_service() -> FakeFeedUploadContainer:
-    return FakeFeedUploadContainer()
+def get_feed_upload_service(files: set[str] | None = None) -> FakeFeedUploadContainer:
+    return FakeFeedUploadContainer(files)
 
 
 class FakeNotificationRepository:

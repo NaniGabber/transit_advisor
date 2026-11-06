@@ -192,7 +192,7 @@ class FakeContainer:
 
 class FakeChecksumService(ChecksumService):
     def calculate_from_file(self, path: Path) -> str:
-        return "fake_checksum_123"
+        return "a" * 64
 
 
 class FakeFeedUploadContainer:

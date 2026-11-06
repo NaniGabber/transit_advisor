@@ -448,3 +448,8 @@ The system was designed with the following goals:
 - extensibility for future analytical features;
 - efficient schedule change tracking;
 - notification-based monitoring of transport updates.
+
+
+## Future work
+
+- comparison of timetable changes at Trip and StopTime levels, including departure time modifications and stop sequence changes.

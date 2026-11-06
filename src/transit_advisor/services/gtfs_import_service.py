@@ -1,8 +1,12 @@
+from collections.abc import Iterator
+from pathlib import Path
+
 from transit_advisor.domain.repositories.agency import AgencyRepository
 from transit_advisor.domain.repositories.route import RouteRepository
 from transit_advisor.domain.repositories.stop import StopRepository
 from transit_advisor.domain.repositories.stoptime import StopTimeRepository
 from transit_advisor.domain.repositories.trip import TripRepository
+from transit_advisor.infrastructure.archive.gtfs_archive_reader import GtfsArchiveReader
 from transit_advisor.infrastructure.gtfs.mappers.agency import to_agency
 from transit_advisor.infrastructure.gtfs.mappers.route import to_route
 from transit_advisor.infrastructure.gtfs.mappers.stop import to_stop
@@ -25,9 +29,43 @@ class GtfsImportService:
         self._trip_repository = trip_repository
         self._stoptime_repository = stoptime_repository
 
+    def import_all(
+        self,
+        archive_path: Path,
+        reader: GtfsArchiveReader,
+    ) -> dict[str, int]:
+        stats: dict[str, int] = {}
+
+        if reader.exists(archive_path, "agency.txt"):
+            stats["agencies"] = self.import_agencies(
+                reader.read_csv(archive_path, "agency.txt")
+            )
+
+        if reader.exists(archive_path, "routes.txt"):
+            stats["routes"] = self.import_routes(
+                reader.read_csv(archive_path, "routes.txt")
+            )
+
+        if reader.exists(archive_path, "stops.txt"):
+            stats["stops"] = self.import_stops(
+                reader.read_csv(archive_path, "stops.txt")
+            )
+
+        if reader.exists(archive_path, "trips.txt"):
+            stats["trips"] = self.import_trips(
+                reader.read_csv(archive_path, "trips.txt")
+            )
+
+        if reader.exists(archive_path, "stop_times.txt"):
+            stats["stop_times"] = self.import_stoptimes(
+                reader.read_csv(archive_path, "stop_times.txt")
+            )
+
+        return stats
+
     def import_agencies(
         self,
-        rows: list[dict[str, str]],
+        rows: Iterator[dict[str, str]],
     ) -> int:
         imported = 0
 
@@ -44,24 +82,16 @@ class GtfsImportService:
 
     def import_routes(
         self,
-        rows: list[dict[str, str]],
+        rows: Iterator[dict[str, str]],
     ) -> int:
         imported = 0
 
         for row in rows:
-            gtfs_agency_id = row.get(
-                "agency_id",
-                "",
-            )
+            gtfs_agency_id = row.get("agency_id", "")
 
-            agency = self._agency_repository.find_by_agency_id(
-                gtfs_agency_id,
-            )
+            agency = self._agency_repository.find_by_agency_id(gtfs_agency_id)
 
-            if agency is None:
-                continue
-
-            if agency.id is None:
+            if agency is None or agency.id is None:
                 continue
 
             route = to_route(
@@ -72,17 +102,14 @@ class GtfsImportService:
             if route is None:
                 continue
 
-            self._route_repository.save(
-                route,
-            )
-
+            self._route_repository.save(route)
             imported += 1
 
         return imported
 
     def import_stops(
         self,
-        rows: list[dict[str, str]],
+        rows: Iterator[dict[str, str]],
     ) -> int:
         imported = 0
 
@@ -99,13 +126,12 @@ class GtfsImportService:
 
     def import_trips(
         self,
-        rows: list[dict[str, str]],
+        rows: Iterator[dict[str, str]],
     ) -> int:
         imported = 0
 
         for row in rows:
             gtfs_route_id = row.get("route_id", "")
-
             route = self._route_repository.find_by_route_id(gtfs_route_id)
 
             if route is None or route.id is None:
@@ -126,18 +152,13 @@ class GtfsImportService:
 
     def import_stoptimes(
         self,
-        rows: list[dict[str, str]],
+        rows: Iterator[dict[str, str]],
     ) -> int:
         imported = 0
 
         for row in rows:
-            trip = self._trip_repository.find_by_trip_id(
-                row.get("trip_id", ""),
-            )
-
-            stop = self._stop_repository.find_by_stop_id(
-                row.get("stop_id", ""),
-            )
+            trip = self._trip_repository.find_by_trip_id(row.get("trip_id", ""))
+            stop = self._stop_repository.find_by_stop_id(row.get("stop_id", ""))
 
             if trip is None or stop is None:
                 continue
@@ -154,10 +175,7 @@ class GtfsImportService:
             if stop_time is None:
                 continue
 
-            self._stoptime_repository.save(
-                stop_time,
-            )
-
+            self._stoptime_repository.save(stop_time)
             imported += 1
 
         return imported

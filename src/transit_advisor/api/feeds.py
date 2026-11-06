@@ -1,7 +1,8 @@
 from __future__ import annotations
 
-import io
-import zipfile
+import shutil
+import tempfile
+from pathlib import Path
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, status
@@ -27,18 +28,14 @@ async def upload(
     file: UploadFile,
     service: Annotated[FeedUploadService, Depends(get_feed_upload_service)],
 ) -> UploadFeedResponse:
-    archive_bytes = await file.read()
+    with tempfile.NamedTemporaryFile(delete=False, suffix=".zip") as tmp:
+        shutil.copyfileobj(file.file, tmp)
+        tmp_path = Path(tmp.name)
 
     try:
-        archive_files = _list_archive_files(archive_bytes)
-    except zipfile.BadZipFile as exc:
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
-            detail="Uploaded file is not a valid zip archive.",
-        ) from exc
-
-    result: UploadResult = service.upload(archive_bytes, archive_files)
-
+        result: UploadResult = service.upload(tmp_path)
+    finally:
+        tmp_path.unlink(missing_ok=True)
     if not result.imported and not result.duplicate:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
@@ -56,8 +53,3 @@ async def upload(
         imported=result.imported,
         duplicate=result.duplicate,
     )
-
-
-def _list_archive_files(archive_bytes: bytes) -> set[str]:
-    with zipfile.ZipFile(io.BytesIO(archive_bytes)) as zf:
-        return set(zf.namelist())

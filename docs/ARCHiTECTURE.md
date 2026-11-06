@@ -312,9 +312,7 @@ Route(
 results in:
 
 ```python
-ValueError(
-    "agency_id must be positive"
-)
+ValueError("agency_id must be positive")
 ```
 
 ### Service Layer

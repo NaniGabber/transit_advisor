@@ -190,21 +190,26 @@ class FakeContainer:
         )
 
 
+class FakeChecksumService(ChecksumService):
+    def calculate_from_file(self, path: Path) -> str:
+        return "fake_checksum_123"
+
+
 class FakeFeedUploadContainer:
     def __init__(self, files: set[str] | None = None) -> None:
         self.schedule_version_repository = FakeScheduleVersionRepository()
         self.archive_reader = FakeGtfsArchiveReader(files)
         self.import_service = FakeGtfsImportService()
+        self.checksum_service = FakeChecksumService()  # <-- Додано
 
         self.validator = FeedValidator()
-        self.checksum_service = ChecksumService()
         self.schedule_version_service = ScheduleVersionService(
             self.schedule_version_repository,
         )
 
         self.service = FeedUploadService(
             validator=self.validator,
-            checksum_service=self.checksum_service,
+            checksum_service=self.checksum_service,  # <-- Використовуємо фейк
             schedule_version_service=self.schedule_version_service,
             archive_reader=self.archive_reader,
             import_service=self.import_service,

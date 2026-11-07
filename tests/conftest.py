@@ -16,11 +16,14 @@ from tests.services.fake_repos import (
     FakeGtfsImportService,
     FakeNotificationRepository,
     FakeRouteRepository,
+    FakeStopTimeRepository,
     FakeSubscriptionRepository,
+    FakeTripRepository,
 )
 from transit_advisor.api.dependencies import (
     get_feed_upload_service,
     get_notification_repository,
+    get_session,
 )
 from transit_advisor.api.feeds import router as feeds_router
 from transit_advisor.api.notification import router as notifications_router
@@ -212,24 +215,18 @@ def feed_upload_service(
 
 @pytest.fixture
 def app(
+    session: Session,
     feed_upload_service: FeedUploadService,
 ) -> Generator[FastAPI, None, None]:
     app = FastAPI()
+    app.include_router(feeds_router)
+    app.include_router(subscriptions_router)
+    app.include_router(notifications_router)
 
-    app.include_router(
-        feeds_router,
-    )
-
-    app.include_router(
-        subscriptions_router,
-    )
-    app.include_router(
-        notifications_router,
-    )
     app.dependency_overrides[get_feed_upload_service] = lambda: feed_upload_service
+    app.dependency_overrides[get_session] = lambda: session
 
     yield app
-
     app.dependency_overrides.clear()
 
 
@@ -399,8 +396,18 @@ def fake_subscription_repository() -> FakeSubscriptionRepository:
 
 
 @pytest.fixture
+def fake_trip_repository() -> FakeTripRepository:
+    return FakeTripRepository()
+
+
+@pytest.fixture
 def fake_route_repository() -> FakeRouteRepository:
     return FakeRouteRepository()
+
+
+@pytest.fixture
+def fake_stoptime_repository() -> FakeStopTimeRepository:
+    return FakeStopTimeRepository()
 
 
 @pytest.fixture
@@ -417,12 +424,16 @@ def schedule_update_service(
     notification_service: NotificationService,
     fake_subscription_repository: FakeSubscriptionRepository,
     fake_route_repository: FakeRouteRepository,
+    fake_trip_repository: FakeTripRepository,
+    fake_stoptime_repository: FakeStopTimeRepository,
 ) -> ScheduleUpdateService:
     return ScheduleUpdateService(
         diff_service=ScheduleDiffService(),
         notification_service=notification_service,
         subscription_repository=fake_subscription_repository,
         route_repository=fake_route_repository,
+        trip_repository=fake_trip_repository,
+        stoptime_repository=fake_stoptime_repository,
     )
 
 

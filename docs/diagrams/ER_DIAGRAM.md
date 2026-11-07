@@ -1,3 +1,4 @@
+```mermaid
 erDiagram
 
     Agency ||--o{ Route : operates
@@ -82,3 +83,4 @@ erDiagram
         string checksum
         datetime imported_at
     }
+```

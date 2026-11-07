@@ -52,6 +52,9 @@ class FakeRouteRepository:
                 return route
         return None
 
+    def find_by_id(self, route_id: int) -> Route | None:
+        return next((r for r in self.saved if r.id == route_id), None)
+
 
 class FakeStopRepository:
     def __init__(self) -> None:

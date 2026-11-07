@@ -210,3 +210,24 @@ Future refactoring efforts should focus primarily on:
 3. Transaction management.
 4. Structured logging.
 5. Analytical features.
+
+
+## GTFS Import Optimization
+
+Current implementation performs repository lookups for each imported row.
+
+Example:
+
+- find_by_trip_id(...)
+- find_by_stop_id(...)
+
+This approach keeps memory consumption constant but generates a significant number of database queries for large GTFS datasets.
+
+Future optimization may include:
+
+- caching trip identifiers;
+- caching stop identifiers;
+- batch inserts;
+- bulk SQLAlchemy operations.
+
+This would significantly improve import performance for feeds containing millions of StopTime records.

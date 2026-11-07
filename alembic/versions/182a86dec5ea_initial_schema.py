@@ -1,8 +1,8 @@
-"""upd
+"""initial schema
 
-Revision ID: 304d59383436
-Revises: 049a3f74a6e2
-Create Date: 2026-11-07 00:06:15.640254
+Revision ID: 182a86dec5ea
+Revises:
+Create Date: 2026-11-07 13:56:44.335086
 
 """
 
@@ -13,8 +13,8 @@ import sqlalchemy as sa
 from alembic import op
 
 # revision identifiers, used by Alembic.
-revision: str = "304d59383436"
-down_revision: str | Sequence[str] | None = "049a3f74a6e2"
+revision: str = "182a86dec5ea"
+down_revision: str | Sequence[str] | None = None
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 

@@ -1,4 +1,5 @@
 from collections.abc import Iterator
+from dataclasses import replace
 from pathlib import Path
 
 from transit_advisor.domain.agency import Agency
@@ -72,18 +73,26 @@ class FakeStopRepository:
 class FakeTripRepository:
     def __init__(self) -> None:
         self.saved: list[Trip] = []
+        self._next_id = 1
 
     def save(self, trip: Trip) -> Trip:
         if trip.id is None:
-            trip.id = len(self.saved) + 1
+            trip = replace(trip, id=self._next_id)
+            self._next_id += 1
         self.saved.append(trip)
         return trip
 
     def find_by_trip_id(self, trip_id: str) -> Trip | None:
-        for trip in self.saved:
-            if trip.trip_id == trip_id:
-                return trip
-        return None
+        return next((t for t in self.saved if t.trip_id == trip_id), None)
+
+    def find_by_schedule_version_id(
+        self,
+        schedule_version_id: int,
+    ) -> list[Trip]:
+        return [t for t in self.saved if t.schedule_version_id == schedule_version_id]
+
+    def find_by_route_id(self, route_id: int) -> list[Trip]:
+        return [t for t in self.saved if t.route_id == route_id]
 
 
 class FakeStopTimeRepository:
@@ -91,10 +100,7 @@ class FakeStopTimeRepository:
         self.saved: list[StopTime] = []
         self._next_id = 1
 
-    def save(
-        self,
-        stop_time: StopTime,
-    ) -> StopTime:
+    def save(self, stop_time: StopTime) -> StopTime:
         saved = StopTime(
             id=self._next_id,
             trip_id=stop_time.trip_id,
@@ -103,17 +109,27 @@ class FakeStopTimeRepository:
             departure_time=stop_time.departure_time,
             stop_sequence=stop_time.stop_sequence,
         )
-
         self.saved.append(saved)
         self._next_id += 1
-
         return saved
 
-    def find_by_trip_id(
+    def find_by_trip_id(self, trip_id: int) -> list[StopTime]:
+        return [st for st in self.saved if st.trip_id == trip_id]
+
+    def find_by_trip_ids(self, trip_ids: list[int]) -> list[StopTime]:
+        return [st for st in self.saved if st.trip_id in trip_ids]
+
+    def find_by_stop_id(self, stop_id: int) -> list[StopTime]:
+        return [st for st in self.saved if st.stop_id == stop_id]
+
+    def find_by_route_id_and_version(
         self,
-        trip_id: int,
+        route_id: int,
+        schedule_version_id: int,
     ) -> list[StopTime]:
-        return [stop_time for stop_time in self.saved if stop_time.trip_id == trip_id]
+        raise NotImplementedError(
+            "FakeStopTimeRepository does not know about trips/routes"
+        )
 
 
 class FakeScheduleVersionRepository:

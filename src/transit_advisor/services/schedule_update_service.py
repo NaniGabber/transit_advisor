@@ -5,6 +5,7 @@ from transit_advisor.domain.repositories.subscription import (
     SubscriptionRepository,
 )
 from transit_advisor.domain.route import Route
+from transit_advisor.domain.stoptime import StopTime
 from transit_advisor.services.notification_service import (
     NotificationService,
 )
@@ -31,35 +32,32 @@ class ScheduleUpdateService:
         old_routes: list[Route],
         new_routes: list[Route],
         schedule_version_id: int,
+        old_stop_times: list[StopTime] | None = None,
+        new_stop_times: list[StopTime] | None = None,
+        trip_to_route: dict[int, str] | None = None,
     ) -> int:
         diff = self._diff_service.compare_routes(
             old_routes,
             new_routes,
+            old_stop_times=old_stop_times,
+            new_stop_times=new_stop_times,
+            trip_to_route=trip_to_route,
         )
 
         created_notifications = 0
 
-        for gtfs_route_id in diff.added_routes:
-            route = self._route_repository.find_by_route_id(
-                gtfs_route_id,
-            )
-
-            if route is None:
+        for gtfs_route_id in diff.changed_stop_times:
+            route = self._route_repository.find_by_route_id(gtfs_route_id)
+            if route is None or route.id is None:
                 continue
 
-            if route.id is None:
-                continue
-
-            subscriptions = self._subscription_repository.find_by_route_id(
-                route.id,
-            )
-
+            subscriptions = self._subscription_repository.find_by_route_id(route.id)
             for subscription in subscriptions:
                 self._notification_service.create_notification(
                     user_id=subscription.user_id,
                     subscription_id=subscription.id or 0,
                     schedule_version_id=schedule_version_id,
-                    message=f"Route {gtfs_route_id} was added",
+                    message=f"Schedule for route {gtfs_route_id} has changed",
                 )
                 created_notifications += 1
 

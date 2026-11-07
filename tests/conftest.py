@@ -15,6 +15,8 @@ from sqlalchemy.orm import Session, sessionmaker
 from tests.services.fake_repos import (
     FakeGtfsImportService,
     FakeNotificationRepository,
+    FakeRouteRepository,
+    FakeSubscriptionRepository,
 )
 from transit_advisor.api.dependencies import (
     get_feed_upload_service,
@@ -48,6 +50,9 @@ from transit_advisor.infrastructure.repositories.trip import SqlAlchemyTripRepos
 from transit_advisor.services.checksum_service import ChecksumService
 from transit_advisor.services.feed_upload_service import FeedUploadService
 from transit_advisor.services.feed_validation_service import FeedValidator
+from transit_advisor.services.notification_service import NotificationService
+from transit_advisor.services.schedule_diff_service import ScheduleDiffService
+from transit_advisor.services.schedule_update_service import ScheduleUpdateService
 from transit_advisor.services.schedule_version_service import ScheduleVersionService
 
 load_dotenv()
@@ -333,4 +338,42 @@ def notification_parents(
     return (
         subscription.id,
         version.id,
+    )
+
+
+@pytest.fixture
+def fake_notification_repository() -> FakeNotificationRepository:
+    return FakeNotificationRepository()
+
+
+@pytest.fixture
+def fake_subscription_repository() -> FakeSubscriptionRepository:
+    return FakeSubscriptionRepository()
+
+
+@pytest.fixture
+def fake_route_repository() -> FakeRouteRepository:
+    return FakeRouteRepository()
+
+
+@pytest.fixture
+def notification_service(
+    fake_notification_repository: FakeNotificationRepository,
+) -> NotificationService:
+    return NotificationService(
+        notification_repository=fake_notification_repository,
+    )
+
+
+@pytest.fixture
+def schedule_update_service(
+    notification_service: NotificationService,
+    fake_subscription_repository: FakeSubscriptionRepository,
+    fake_route_repository: FakeRouteRepository,
+) -> ScheduleUpdateService:
+    return ScheduleUpdateService(
+        diff_service=ScheduleDiffService(),
+        notification_service=notification_service,
+        subscription_repository=fake_subscription_repository,
+        route_repository=fake_route_repository,
     )

@@ -56,7 +56,7 @@ def test_to_trip_normalizes_headsign() -> None:
 def test_to_trip_allows_missing_headsign() -> None:
     row = {
         "trip_id": "trip_001",
-        "trip_headsign": "Trip",
+        "trip_headsign": None,
     }
 
     trip = to_trip(

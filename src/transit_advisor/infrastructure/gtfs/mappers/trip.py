@@ -16,7 +16,7 @@ def to_trip(
             ),
             schedule_version_id=schedule_version_id,
             headsign=normalize(
-                row.get("trip_headsign", ""),
+                row.get("trip_headsign") or "",
             )
             or None,
         )

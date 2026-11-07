@@ -374,11 +374,13 @@ def test_process_version_update_creates_notification_for_changed_stop_time(
         fake_trip_repository,
         route=route,
         schedule_version_id=1,
+        trip_id="trip_1",
     )
     new_trip = make_trip(
         fake_trip_repository,
         route=route,
         schedule_version_id=2,
+        trip_id="trip_1",
     )
     assert old_trip.id is not None
     assert new_trip.id is not None
@@ -430,11 +432,13 @@ def test_process_version_update_no_notifications_when_no_changes(
         fake_trip_repository,
         route=route,
         schedule_version_id=1,
+        trip_id="trip_1",
     )
     new_trip = make_trip(
         fake_trip_repository,
         route=route,
         schedule_version_id=2,
+        trip_id="trip_1",
     )
     assert old_trip.id is not None
     assert new_trip.id is not None
@@ -478,11 +482,13 @@ def test_process_version_update_no_notifications_without_subscribers(
         fake_trip_repository,
         route=route,
         schedule_version_id=1,
+        trip_id="trip_1",
     )
     new_trip = make_trip(
         fake_trip_repository,
         route=route,
         schedule_version_id=2,
+        trip_id="trip_1",
     )
     assert old_trip.id is not None
     assert new_trip.id is not None
@@ -528,9 +534,24 @@ def test_process_version_update_detects_added_route(
         Subscription(id=None, user_id=1, route_id=route_16.id)
     )
 
-    make_trip(fake_trip_repository, route=route_15, schedule_version_id=1)
-    make_trip(fake_trip_repository, route=route_15, schedule_version_id=2)
-    make_trip(fake_trip_repository, route=route_16, schedule_version_id=2)
+    make_trip(
+        fake_trip_repository,
+        route=route_15,
+        schedule_version_id=1,
+        trip_id="trip_15",
+    )
+    make_trip(
+        fake_trip_repository,
+        route=route_15,
+        schedule_version_id=2,
+        trip_id="trip_15",
+    )
+    make_trip(
+        fake_trip_repository,
+        route=route_16,
+        schedule_version_id=2,
+        trip_id="trip_16",
+    )
 
     created = schedule_update_service.process_version_update(
         old_version_id=1,
@@ -542,7 +563,7 @@ def test_process_version_update_detects_added_route(
     assert fake_notification_repository.saved == []
 
 
-def test_process_version_update_creates_notification_for_removed_route(
+def test_process_version_update_no_notification_for_removed_route(
     schedule_update_service: ScheduleUpdateService,
     fake_notification_repository: FakeNotificationRepository,
     fake_subscription_repository: FakeSubscriptionRepository,
@@ -556,8 +577,18 @@ def test_process_version_update_creates_notification_for_removed_route(
         Subscription(id=None, user_id=1, route_id=route.id)
     )
 
-    make_trip(fake_trip_repository, route=route, schedule_version_id=1)
-    make_trip(fake_trip_repository, route=route, schedule_version_id=2)
+    make_trip(
+        fake_trip_repository,
+        route=route,
+        schedule_version_id=1,
+        trip_id="trip_1",
+    )
+    make_trip(
+        fake_trip_repository,
+        route=route,
+        schedule_version_id=2,
+        trip_id="trip_1",
+    )
 
     created = schedule_update_service.process_version_update(
         old_version_id=1,
@@ -587,8 +618,18 @@ def test_process_version_update_notifies_all_subscribers_of_changed_route(
         Subscription(id=None, user_id=2, route_id=route.id)
     )
 
-    old_trip = make_trip(fake_trip_repository, route=route, schedule_version_id=1)
-    new_trip = make_trip(fake_trip_repository, route=route, schedule_version_id=2)
+    old_trip = make_trip(
+        fake_trip_repository,
+        route=route,
+        schedule_version_id=1,
+        trip_id="trip_1",
+    )
+    new_trip = make_trip(
+        fake_trip_repository,
+        route=route,
+        schedule_version_id=2,
+        trip_id="trip_1",
+    )
     assert old_trip.id is not None
     assert new_trip.id is not None
 
@@ -636,10 +677,16 @@ def test_process_version_update_does_not_notify_unrelated_route(
     )
 
     old_trip = make_trip(
-        fake_trip_repository, route=changed_route, schedule_version_id=1
+        fake_trip_repository,
+        route=changed_route,
+        schedule_version_id=1,
+        trip_id="trip_15",
     )
     new_trip = make_trip(
-        fake_trip_repository, route=changed_route, schedule_version_id=2
+        fake_trip_repository,
+        route=changed_route,
+        schedule_version_id=2,
+        trip_id="trip_15",
     )
     assert old_trip.id is not None
     assert new_trip.id is not None
@@ -684,8 +731,18 @@ def test_process_version_update_detects_added_stop(
         Subscription(id=None, user_id=1, route_id=route.id)
     )
 
-    old_trip = make_trip(fake_trip_repository, route=route, schedule_version_id=1)
-    new_trip = make_trip(fake_trip_repository, route=route, schedule_version_id=2)
+    old_trip = make_trip(
+        fake_trip_repository,
+        route=route,
+        schedule_version_id=1,
+        trip_id="trip_1",
+    )
+    new_trip = make_trip(
+        fake_trip_repository,
+        route=route,
+        schedule_version_id=2,
+        trip_id="trip_1",
+    )
     assert old_trip.id is not None
     assert new_trip.id is not None
 
@@ -740,32 +797,20 @@ def test_process_version_update_detects_multiple_changed_stops(
         Subscription(id=None, user_id=1, route_id=route.id)
     )
 
-    old_trip = make_trip(fake_trip_repository, route=route, schedule_version_id=1)
-    new_trip = make_trip(fake_trip_repository, route=route, schedule_version_id=2)
+    old_trip = make_trip(
+        fake_trip_repository,
+        route=route,
+        schedule_version_id=1,
+        trip_id="trip_1",
+    )
+    new_trip = make_trip(
+        fake_trip_repository,
+        route=route,
+        schedule_version_id=2,
+        trip_id="trip_1",
+    )
     assert old_trip.id is not None
     assert new_trip.id is not None
-
-    for trip_id in (old_trip.id, new_trip.id):
-        fake_stoptime_repository.save(
-            make_stop_time(
-                trip_id=trip_id,
-                stop_id=1,
-                arrival_time="08:00:00",
-                departure_time="08:01:00",
-            )
-        )
-        fake_stoptime_repository.save(
-            make_stop_time(
-                trip_id=trip_id,
-                stop_id=2,
-                arrival_time="08:10:00",
-                departure_time="08:11:00",
-                stop_sequence=2,
-            )
-        )
-
-    fake_stoptime_repository.saved.clear()
-    fake_stoptime_repository._next_id = 1
 
     fake_stoptime_repository.save(
         make_stop_time(
@@ -830,7 +875,12 @@ def test_process_version_update_same_version_produces_no_notifications(
         Subscription(id=None, user_id=1, route_id=route.id)
     )
 
-    trip = make_trip(fake_trip_repository, route=route, schedule_version_id=1)
+    trip = make_trip(
+        fake_trip_repository,
+        route=route,
+        schedule_version_id=1,
+        trip_id="trip_1",
+    )
     assert trip.id is not None
 
     fake_stoptime_repository.save(

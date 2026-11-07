@@ -87,13 +87,11 @@ class ScheduleUpdateService:
             [t.id for t in new_trips if t.id is not None]
         )
 
-        trip_to_route: dict[int, str] = {}
+        trip_to_route: dict[str, str] = {}
         for trip in [*old_trips, *new_trips]:
-            if trip.id is None:
-                continue
             route = self._route_repository.find_by_id(trip.route_id)
             if route is not None:
-                trip_to_route[trip.id] = route.route_id
+                trip_to_route[trip.trip_id] = route.route_id
 
         diff = self._diff_service.compare_versions(
             old_trips=old_trips,

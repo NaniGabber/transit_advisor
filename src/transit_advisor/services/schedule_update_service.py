@@ -9,6 +9,7 @@ from transit_advisor.domain.repositories.subscription import (
 )
 from transit_advisor.domain.repositories.trip import TripRepository
 from transit_advisor.domain.route import Route
+from transit_advisor.domain.schedulediff import ScheduleDiff
 from transit_advisor.domain.stoptime import StopTime
 from transit_advisor.services.notification_service import (
     NotificationService,
@@ -121,3 +122,38 @@ class ScheduleUpdateService:
                 created_notifications += 1
 
         return created_notifications
+
+    def compare_route_versions(
+        self,
+        route_id: int,
+        from_version_id: int,
+        to_version_id: int,
+    ) -> ScheduleDiff:
+        route = self._route_repository.find_by_id(route_id)
+        if route is None:
+            raise ValueError(f"Route {route_id} not found")
+
+        old_trips = self._trip_repository.find_by_schedule_version_id(from_version_id)
+        new_trips = self._trip_repository.find_by_schedule_version_id(to_version_id)
+
+        old_trips = [t for t in old_trips if t.route_id == route_id]
+        new_trips = [t for t in new_trips if t.route_id == route_id]
+
+        old_stop_times = self._stoptime_repository.find_by_trip_ids(
+            [t.id for t in old_trips if t.id is not None]
+        )
+        new_stop_times = self._stoptime_repository.find_by_trip_ids(
+            [t.id for t in new_trips if t.id is not None]
+        )
+
+        trip_to_route: dict[str, str] = {}
+        for trip in [*old_trips, *new_trips]:
+            trip_to_route[trip.trip_id] = route.route_id
+
+        return self._diff_service.compare_versions(
+            old_trips=old_trips,
+            new_trips=new_trips,
+            old_stop_times=old_stop_times,
+            new_stop_times=new_stop_times,
+            trip_to_route=trip_to_route,
+        )

@@ -52,3 +52,11 @@ class SubscriptionResponse(BaseModel):
     user_id: int
     route_id: int
     is_active: bool
+
+
+class RouteDiffResponse(BaseModel):
+    from_version: int
+    to_version: int
+    added_routes: list[str]
+    removed_routes: list[str]
+    changed_stop_times: dict[str, list[int]]

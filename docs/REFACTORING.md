@@ -4,9 +4,18 @@
 
 This document records architectural limitations identified during development and possible directions for future refactoring.
 
+Status legend:
+
+- **DONE** — implemented and covered by tests.
+- **PARTIAL** — partially implemented; remaining work is described.
+- **PLANNED** — not implemented; intended for future work.
+- **DEFERRED** — consciously postponed; rationale is given.
+
 ---
 
 ## Schedule Version Integration
+
+### Status: PARTIAL
 
 ### Current State
 
@@ -20,15 +29,14 @@ Current entities:
 - Trip
 - StopTime
 
-are not directly linked to:
-
-- ScheduleVersion
-
-As a result, imported transport data represents only the latest known state.
+`Trip` is linked to `ScheduleVersion` via `Trip.schedule_version_id`.
+`StopTime` inherits the version through `Trip`.
+`Agency`, `Route`, and `Stop` remain reference data.
 
 ### Limitation
 
-The application cannot reconstruct a complete historical snapshot of a schedule version.
+The application cannot reconstruct a complete historical snapshot of
+`Agency`, `Route`, and `Stop` for a given schedule version.
 
 For example:
 
@@ -40,11 +48,12 @@ Schedule Version #2
 Route 11
 ```
 
-are currently represented by the same database records.
+are still represented by the same `Route` record. `Trip` and `StopTime`,
+however, are versioned.
 
 ### Future Refactoring
 
-Introduce:
+If full historical snapshots of reference data are required, introduce:
 
 ```text
 schedule_version_id
@@ -55,70 +64,62 @@ into:
 - Agency
 - Route
 - Stop
-- Trip
-- StopTime
 
-This would allow storing complete historical versions and comparing them directly.
+See ADR-002 for the decision to keep them as reference data.
 
 ---
 
 ## Route Comparison
 
+### Status: DONE
+
 ### Current State
 
-ScheduleDiffService compares route sets and detects:
+`ScheduleDiffService` compares route sets and detects:
 
 - added routes;
-- removed routes.
+- removed routes;
+- changed stop times (arrival/departure);
+- added stops;
+- removed stops.
+
+Two paths are available:
+
+- `compare_routes(...)` — by surrogate `Trip.id` (used by `process_update`);
+- `compare_versions(...)` — by GTFS `trip_id` (used by `process_version_update`).
 
 ### Limitation
 
-The implementation does not compare:
-
-- stop sequences;
-- departure times;
-- trip definitions.
+None for the current scope. The GTFS `trip_id` is assumed stable between
+versions of the same feed.
 
 ### Future Refactoring
 
-Extend comparison logic to operate on:
-
-```text
-Trip
-StopTime
-```
-
-and detect timetable-level modifications.
-
-Examples:
-
-- departure time changed;
-- stop added to route;
-- stop removed from route.
+If `trip_id` stops being stable (e.g. cross-agency comparison), introduce a
+stable domain-level trip identifier.
 
 ---
 
 ## Feed Import Transactions
 
+### Status: PARTIAL
+
 ### Current State
 
-Repositories perform commits independently.
+Repositories use `flush()` instead of `commit()` in `save()` methods.
 
-Example:
-
-```python
-repository.save(...)
-```
-
-immediately commits data.
+`FeedUploadService.upload(...)` does not yet wrap "create version + import +
+process update" in a single transaction.
 
 ### Limitation
 
-A failure during import may leave partially imported data inside the database.
+A failure during import may leave partially imported data inside the database
+if the service does not roll back.
 
 ### Future Refactoring
 
-Use a Unit of Work pattern or application-level transactions for the complete import process.
+Use a Unit of Work pattern or application-level transactions for the complete
+import process.
 
 Benefits:
 
@@ -129,6 +130,8 @@ Benefits:
 ---
 
 ## Logging
+
+### Status: PLANNED
 
 ### Current State
 
@@ -163,6 +166,8 @@ for:
 
 ## User Management
 
+### Status: DEFERRED
+
 ### Current State
 
 Subscriptions are associated with a numeric user identifier.
@@ -180,9 +185,14 @@ Introduce:
 - Authentication;
 - Authorization policies.
 
+Out of scope for the current iteration; the numeric `user_id` is sufficient
+for subscription and notification flows.
+
 ---
 
 ## Analytics
+
+### Status: PLANNED
 
 ### Current State
 
@@ -192,7 +202,7 @@ Analytical reports are not implemented.
 
 Add:
 
-- route frequency statistics;
+- route frequency statistics by day of week;
 - peak-hour interval analysis;
 - busiest stops;
 - route popularity metrics.
@@ -205,14 +215,20 @@ The current implementation prioritizes correctness, maintainability and extensib
 
 Future refactoring efforts should focus primarily on:
 
-1. Full schedule version support.
-2. Timetable-level change detection.
-3. Transaction management.
-4. Structured logging.
-5. Analytical features.
+1. Full schedule version support (**PARTIAL** — `Trip`/`StopTime` done,
+   `Route`/`Stop`/`Agency` deferred, see ADR-002).
+2. Timetable-level change detection (**DONE** — by GTFS `trip_id`).
+3. Transaction management (**PARTIAL** — `flush()` in repositories,
+   application-level transaction pending).
+4. Structured logging (**PLANNED**).
+5. Analytical features (**PLANNED**).
 
 
 ## GTFS Import Optimization
+
+### Status: PLANNED
+
+### Current State
 
 Current implementation performs repository lookups for each imported row.
 
@@ -222,6 +238,8 @@ Example:
 - find_by_stop_id(...)
 
 This approach keeps memory consumption constant but generates a significant number of database queries for large GTFS datasets.
+
+### Future Refactoring
 
 Future optimization may include:
 

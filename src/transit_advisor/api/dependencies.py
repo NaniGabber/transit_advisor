@@ -9,13 +9,13 @@ from transit_advisor.infrastructure.database.base import engine
 from transit_advisor.infrastructure.repositories.agency import (
     SqlAlchemyAgencyRepository,
 )
-from transit_advisor.infrastructure.repositories.in_memory_scheduleversion import (
-    InMemoryScheduleVersionRepository,
-)
 from transit_advisor.infrastructure.repositories.notification import (
     SqlAlchemyNotificationRepository,
 )
 from transit_advisor.infrastructure.repositories.route import SqlAlchemyRouteRepository
+from transit_advisor.infrastructure.repositories.scheduleversion import (
+    SqlAlchemyScheduleVersionRepository,
+)
 from transit_advisor.infrastructure.repositories.stop import SqlAlchemyStopRepository
 from transit_advisor.infrastructure.repositories.stoptime import (
     SqlAlchemyStopTimeRepository,
@@ -29,13 +29,14 @@ from transit_advisor.services.feed_upload_service import FeedUploadService
 from transit_advisor.services.feed_validation_service import FeedValidator
 from transit_advisor.services.gtfs_import_service import GtfsImportService
 from transit_advisor.services.notification_service import NotificationService
+from transit_advisor.services.schedule_diff_service import ScheduleDiffService
+from transit_advisor.services.schedule_update_service import ScheduleUpdateService
 from transit_advisor.services.schedule_version_service import ScheduleVersionService
 from transit_advisor.services.subscription_service import SubscriptionService
 
 # TODO:
 # Replace with SqlAlchemyScheduleVersionRepository
 # when feed version persistence is fully integrated.
-_repository_singleton = InMemoryScheduleVersionRepository()
 
 SessionLocal = sessionmaker(
     bind=engine,
@@ -50,9 +51,6 @@ def get_session() -> Generator[Session, None, None]:
         yield session
     finally:
         session.close()
-
-
-# GTFS Dependencies
 
 
 def get_agency_repository(
@@ -127,18 +125,35 @@ def get_checksum_service() -> ChecksumService:
     return ChecksumService()
 
 
-def get_schedule_version_repository() -> InMemoryScheduleVersionRepository:
-    return _repository_singleton
+def get_schedule_version_repository(
+    session: Session = Depends(get_session),
+) -> SqlAlchemyScheduleVersionRepository:
+    return SqlAlchemyScheduleVersionRepository(session)
 
 
 def get_schedule_version_service(
     repository: Annotated[
-        InMemoryScheduleVersionRepository,
+        SqlAlchemyScheduleVersionRepository,
         Depends(get_schedule_version_repository),
     ],
 ) -> ScheduleVersionService:
     return ScheduleVersionService(
         repository=repository,
+    )
+
+
+def get_schedule_update_service(
+    session: Session = Depends(get_session),
+) -> ScheduleUpdateService:
+    return ScheduleUpdateService(
+        diff_service=ScheduleDiffService(),
+        notification_service=NotificationService(
+            SqlAlchemyNotificationRepository(session),
+        ),
+        subscription_repository=SqlAlchemySubscriptionRepository(session),
+        route_repository=SqlAlchemyRouteRepository(session),
+        trip_repository=SqlAlchemyTripRepository(session),
+        stoptime_repository=SqlAlchemyStopTimeRepository(session),
     )
 
 
@@ -186,9 +201,6 @@ def get_notification_service(
     return NotificationService(
         repository,
     )
-
-
-# Subscription Dependencies
 
 
 def get_subscription_repository(

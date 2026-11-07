@@ -29,6 +29,7 @@ from transit_advisor.domain.agency import Agency
 from transit_advisor.domain.route import Route
 from transit_advisor.domain.scheduleversion import ScheduleVersion
 from transit_advisor.domain.subscription import Subscription
+from transit_advisor.domain.trip import Trip
 from transit_advisor.infrastructure.archive.gtfs_archive_reader import GtfsArchiveReader
 from transit_advisor.infrastructure.database.base import Base
 from transit_advisor.infrastructure.repositories.agency import (
@@ -42,6 +43,9 @@ from transit_advisor.infrastructure.repositories.scheduleversion import (
 )
 from transit_advisor.infrastructure.repositories.stop import (
     SqlAlchemyStopRepository,
+)
+from transit_advisor.infrastructure.repositories.stoptime import (
+    SqlAlchemyStopTimeRepository,
 )
 from transit_advisor.infrastructure.repositories.subscription import (
     SqlAlchemySubscriptionRepository,
@@ -129,6 +133,25 @@ def trip_repository(
     session: Session,
 ) -> SqlAlchemyTripRepository:
     return SqlAlchemyTripRepository(session)
+
+
+@pytest.fixture
+def trip(
+    route: Route,
+    schedule_version: ScheduleVersion,
+    trip_repository: SqlAlchemyTripRepository,
+) -> Trip:
+    assert route.id is not None
+    assert schedule_version.id is not None
+
+    return trip_repository.save(
+        Trip(
+            id=None,
+            route_id=route.id,
+            trip_id="trip_1",
+            schedule_version_id=schedule_version.id,
+        )
+    )
 
 
 @pytest.fixture
@@ -377,3 +400,10 @@ def schedule_update_service(
         subscription_repository=fake_subscription_repository,
         route_repository=fake_route_repository,
     )
+
+
+@pytest.fixture
+def stoptime_repository(
+    session: Session,
+) -> SqlAlchemyStopTimeRepository:
+    return SqlAlchemyStopTimeRepository(session)

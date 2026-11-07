@@ -13,3 +13,8 @@ class TripRepository(Protocol):
         self,
         trip_id: str,
     ) -> Trip | None: ...
+
+    def find_by_schedule_version_id(
+        self,
+        schedule_version_id: int,
+    ) -> Trip | None: ...

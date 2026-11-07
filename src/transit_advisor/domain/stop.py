@@ -1,5 +1,3 @@
-# src/transit_advisor/domain/stop.py
-
 from dataclasses import dataclass
 
 

@@ -28,6 +28,7 @@ from transit_advisor.api.subscription import router as subscriptions_router
 from transit_advisor.domain.agency import Agency
 from transit_advisor.domain.route import Route
 from transit_advisor.domain.scheduleversion import ScheduleVersion
+from transit_advisor.domain.stop import Stop
 from transit_advisor.domain.subscription import Subscription
 from transit_advisor.domain.trip import Trip
 from transit_advisor.infrastructure.archive.gtfs_archive_reader import GtfsArchiveReader
@@ -152,6 +153,29 @@ def trip(
             schedule_version_id=schedule_version.id,
         )
     )
+
+
+@pytest.fixture
+def trip_factory(
+    route: Route,
+    schedule_version: ScheduleVersion,
+    trip_repository: SqlAlchemyTripRepository,
+) -> Callable[[str], Trip]:
+    assert route.id is not None
+    assert schedule_version.id is not None
+
+    def create(trip_id: str) -> Trip:
+        assert route.id is not None
+        return trip_repository.save(
+            Trip(
+                id=None,
+                route_id=route.id,
+                trip_id=trip_id,
+                schedule_version_id=schedule_version.id,
+            )
+        )
+
+    return create
 
 
 @pytest.fixture
@@ -407,3 +431,26 @@ def stoptime_repository(
     session: Session,
 ) -> SqlAlchemyStopTimeRepository:
     return SqlAlchemyStopTimeRepository(session)
+
+
+@pytest.fixture
+def stop(stop_factory: Callable[[str, str], Stop]) -> Stop:
+    return stop_factory("1", "Station")
+
+
+@pytest.fixture
+def stop_factory(
+    stop_repository: SqlAlchemyStopRepository,
+) -> Callable[[str, str], Stop]:
+    def create(stop_id: str, stop_name: str) -> Stop:
+        return stop_repository.save(
+            Stop(
+                id=None,
+                stop_id=stop_id,
+                name=stop_name,
+                latitude=50.0,
+                longitude=36.0,
+            )
+        )
+
+    return create

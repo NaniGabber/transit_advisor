@@ -81,6 +81,6 @@ erDiagram
     ScheduleVersion {
         int id PK
         string checksum
-        datetime imported at
+        datetime imported_at
     }
 ```

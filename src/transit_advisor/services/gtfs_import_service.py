@@ -156,26 +156,60 @@ class GtfsImportService:
     ) -> int:
         imported = 0
 
+        trip_cache: dict[str, int] = {}
+        stop_cache: dict[str, int] = {}
+
         for row in rows:
-            trip = self._trip_repository.find_by_trip_id(row.get("trip_id", ""))
-            stop = self._stop_repository.find_by_stop_id(row.get("stop_id", ""))
+            gtfs_trip_id = row.get("trip_id", "")
+            gtfs_stop_id = row.get("stop_id", "")
 
-            if trip is None or stop is None:
-                continue
+            trip_id = trip_cache.get(
+                gtfs_trip_id,
+            )
 
-            if trip.id is None or stop.id is None:
-                continue
+            if trip_id is None:
+                trip = self._trip_repository.find_by_trip_id(
+                    gtfs_trip_id,
+                )
+
+                if trip is None or trip.id is None:
+                    continue
+
+                trip_id = trip.id
+                trip_cache[gtfs_trip_id] = trip_id
+
+            stop_id = stop_cache.get(
+                gtfs_stop_id,
+            )
+
+            if stop_id is None:
+                stop = self._stop_repository.find_by_stop_id(
+                    gtfs_stop_id,
+                )
+
+                if stop is None or stop.id is None:
+                    continue
+
+                stop_id = stop.id
+                stop_cache[gtfs_stop_id] = stop_id
 
             stop_time = to_stoptime(
                 row=row,
-                trip_id=trip.id,
-                stop_id=stop.id,
+                trip_id=trip_id,
+                stop_id=stop_id,
             )
 
             if stop_time is None:
                 continue
 
-            self._stoptime_repository.save(stop_time)
+            self._stoptime_repository.save(
+                stop_time,
+            )
+
             imported += 1
+
+            # FIXME
+            if imported % 10000 == 0:
+                print(f"Imported {imported} stop times")
 
         return imported

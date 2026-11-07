@@ -1,6 +1,7 @@
 from transit_advisor.domain.route import Route
 from transit_advisor.domain.schedulediff import ScheduleDiff
 from transit_advisor.domain.stoptime import StopTime
+from transit_advisor.domain.trip import Trip
 
 
 class ScheduleDiffService:
@@ -55,3 +56,41 @@ class ScheduleDiffService:
                     changed.setdefault(route_id, []).append(stop_id)
 
         return changed
+
+    def compare_versions(
+        self,
+        old_trips: list[Trip],
+        new_trips: list[Trip],
+        old_stop_times: list[StopTime],
+        new_stop_times: list[StopTime],
+        trip_to_route: dict[int, str],
+    ) -> ScheduleDiff:
+        old_trip_ids = {trip.trip_id for trip in old_trips}
+        new_trip_ids = {trip.trip_id for trip in new_trips}
+
+        added_routes = sorted(
+            {
+                trip_to_route[trip.id]
+                for trip in new_trips
+                if trip.trip_id not in old_trip_ids and trip.id in trip_to_route
+            }
+        )
+        removed_routes = sorted(
+            {
+                trip_to_route[trip.id]
+                for trip in old_trips
+                if trip.trip_id not in new_trip_ids and trip.id in trip_to_route
+            }
+        )
+
+        changed_stop_times = self._compare_stop_times(
+            old_stop_times,
+            new_stop_times,
+            trip_to_route,
+        )
+
+        return ScheduleDiff(
+            added_routes=added_routes,
+            removed_routes=removed_routes,
+            changed_stop_times=changed_stop_times,
+        )

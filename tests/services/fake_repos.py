@@ -1,13 +1,16 @@
+from collections.abc import Iterator
+from dataclasses import replace
+from pathlib import Path
+
 from transit_advisor.domain.agency import Agency
 from transit_advisor.domain.notification import Notification
 from transit_advisor.domain.route import Route
-from transit_advisor.domain.scheduleversion import (
-    ScheduleVersion,
-)
+from transit_advisor.domain.scheduleversion import ScheduleVersion
 from transit_advisor.domain.stop import Stop
 from transit_advisor.domain.stoptime import StopTime
 from transit_advisor.domain.subscription import Subscription
 from transit_advisor.domain.trip import Trip
+from transit_advisor.infrastructure.archive.gtfs_archive_reader import GtfsArchiveReader
 from transit_advisor.services.checksum_service import ChecksumService
 from transit_advisor.services.feed_upload_service import FeedUploadService
 from transit_advisor.services.feed_validation_service import FeedValidator
@@ -49,6 +52,9 @@ class FakeRouteRepository:
                 return route
         return None
 
+    def find_by_id(self, route_id: int) -> Route | None:
+        return next((r for r in self.saved if r.id == route_id), None)
+
 
 class FakeStopRepository:
     def __init__(self) -> None:
@@ -70,18 +76,26 @@ class FakeStopRepository:
 class FakeTripRepository:
     def __init__(self) -> None:
         self.saved: list[Trip] = []
+        self._next_id = 1
 
     def save(self, trip: Trip) -> Trip:
         if trip.id is None:
-            trip.id = len(self.saved) + 1
+            trip = replace(trip, id=self._next_id)
+            self._next_id += 1
         self.saved.append(trip)
         return trip
 
     def find_by_trip_id(self, trip_id: str) -> Trip | None:
-        for trip in self.saved:
-            if trip.trip_id == trip_id:
-                return trip
-        return None
+        return next((t for t in self.saved if t.trip_id == trip_id), None)
+
+    def find_by_schedule_version_id(
+        self,
+        schedule_version_id: int,
+    ) -> list[Trip]:
+        return [t for t in self.saved if t.schedule_version_id == schedule_version_id]
+
+    def find_by_route_id(self, route_id: int) -> list[Trip]:
+        return [t for t in self.saved if t.route_id == route_id]
 
 
 class FakeStopTimeRepository:
@@ -89,10 +103,7 @@ class FakeStopTimeRepository:
         self.saved: list[StopTime] = []
         self._next_id = 1
 
-    def save(
-        self,
-        stop_time: StopTime,
-    ) -> StopTime:
+    def save(self, stop_time: StopTime) -> StopTime:
         saved = StopTime(
             id=self._next_id,
             trip_id=stop_time.trip_id,
@@ -101,17 +112,27 @@ class FakeStopTimeRepository:
             departure_time=stop_time.departure_time,
             stop_sequence=stop_time.stop_sequence,
         )
-
         self.saved.append(saved)
         self._next_id += 1
-
         return saved
 
-    def find_by_trip_id(
+    def find_by_trip_id(self, trip_id: int) -> list[StopTime]:
+        return [st for st in self.saved if st.trip_id == trip_id]
+
+    def find_by_trip_ids(self, trip_ids: list[int]) -> list[StopTime]:
+        return [st for st in self.saved if st.trip_id in trip_ids]
+
+    def find_by_stop_id(self, stop_id: int) -> list[StopTime]:
+        return [st for st in self.saved if st.stop_id == stop_id]
+
+    def find_by_route_id_and_version(
         self,
-        trip_id: int,
+        route_id: int,
+        schedule_version_id: int,
     ) -> list[StopTime]:
-        return [stop_time for stop_time in self.saved if stop_time.trip_id == trip_id]
+        raise NotImplementedError(
+            "FakeStopTimeRepository does not know about trips/routes"
+        )
 
 
 class FakeScheduleVersionRepository:
@@ -140,6 +161,42 @@ class FakeScheduleVersionRepository:
         return None
 
 
+class FakeGtfsArchiveReader(GtfsArchiveReader):
+    def __init__(self, files: set[str] | None = None) -> None:
+        self._files = files or {
+            "agency.txt",
+            "routes.txt",
+            "stops.txt",
+            "trips.txt",
+            "stop_times.txt",
+        }
+
+    def list_files(self, archive_path: Path) -> set[str]:
+        return self._files
+
+    def read_csv(self, archive_path: Path, file_name: str) -> Iterator[dict[str, str]]:
+        return iter([])
+
+    def exists(self, archive_path: Path, file_name: str) -> bool:
+        return file_name in self._files
+
+
+class FakeGtfsImportService(GtfsImportService):
+    def __init__(self) -> None:
+        self.imported_count = 0
+        self.last_schedule_version_id: int | None = None
+
+    def import_all(
+        self,
+        archive_path: Path,
+        reader: GtfsArchiveReader,
+        schedule_version_id: int,
+    ) -> dict[str, int]:
+        self.imported_count += 1
+        self.last_schedule_version_id = schedule_version_id
+        return {"agencies": 1, "routes": 1, "stops": 1, "trips": 1, "stop_times": 1}
+
+
 class FakeContainer:
     def __init__(self) -> None:
         self.agency_repository = FakeAgencyRepository()
@@ -157,20 +214,29 @@ class FakeContainer:
         )
 
 
+class FakeChecksumService(ChecksumService):
+    def calculate_from_file(self, path: Path) -> str:
+        return "a" * 64
+
+
 class FakeFeedUploadContainer:
-    def __init__(self) -> None:
+    def __init__(self, files: set[str] | None = None) -> None:
         self.schedule_version_repository = FakeScheduleVersionRepository()
+        self.archive_reader = FakeGtfsArchiveReader(files)
+        self.import_service = FakeGtfsImportService()
+        self.checksum_service = FakeChecksumService()  # <-- Додано
 
         self.validator = FeedValidator()
-        self.checksum_service = ChecksumService()
         self.schedule_version_service = ScheduleVersionService(
             self.schedule_version_repository,
         )
 
         self.service = FeedUploadService(
             validator=self.validator,
-            checksum_service=self.checksum_service,
+            checksum_service=self.checksum_service,  # <-- Використовуємо фейк
             schedule_version_service=self.schedule_version_service,
+            archive_reader=self.archive_reader,
+            import_service=self.import_service,
         )
 
 
@@ -178,8 +244,8 @@ def get_service() -> FakeContainer:
     return FakeContainer()
 
 
-def get_feed_upload_service() -> FakeFeedUploadContainer:
-    return FakeFeedUploadContainer()
+def get_feed_upload_service(files: set[str] | None = None) -> FakeFeedUploadContainer:
+    return FakeFeedUploadContainer(files)
 
 
 class FakeNotificationRepository:

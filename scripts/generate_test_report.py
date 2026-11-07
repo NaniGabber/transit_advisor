@@ -6,7 +6,7 @@ from typing import Any
 
 BASE_DIR: Path = Path.cwd()
 RESULT_PATH: Path = BASE_DIR / "tests" / "result.json"
-TESTING_MD_PATH: Path = BASE_DIR / "TESTING.md"
+TESTING_MD_PATH: Path = BASE_DIR / "docs" / "TESTING.md"
 
 
 def run_pytest() -> int:

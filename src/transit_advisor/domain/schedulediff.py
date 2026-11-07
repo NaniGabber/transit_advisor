@@ -1,10 +1,11 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 
 @dataclass(slots=True)
 class ScheduleDiff:
     added_routes: list[str]
     removed_routes: list[str]
+    changed_stop_times: dict[str, list[int]] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
         if any(not route_id.strip() for route_id in self.added_routes):

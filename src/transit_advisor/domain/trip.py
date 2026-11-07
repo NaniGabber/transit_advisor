@@ -9,6 +9,7 @@ class Trip:
     trip_id: str
 
     headsign: str | None = None
+    schedule_version_id: int | None = None
 
     def __post_init__(self) -> None:
         if self.route_id <= 0:

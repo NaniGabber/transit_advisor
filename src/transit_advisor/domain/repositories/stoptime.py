@@ -13,3 +13,19 @@ class StopTimeRepository(Protocol):
         self,
         trip_id: int,
     ) -> list[StopTime]: ...
+
+    def find_by_trip_ids(
+        self,
+        trip_ids: list[int],
+    ) -> list[StopTime]: ...
+
+    def find_by_stop_id(
+        self,
+        stop_id: int,
+    ) -> list[StopTime]: ...
+
+    def find_by_route_id_and_version(
+        self,
+        route_id: int,
+        schedule_version_id: int,
+    ) -> list[StopTime]: ...

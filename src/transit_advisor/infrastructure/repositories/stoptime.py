@@ -5,6 +5,9 @@ from transit_advisor.domain.stoptime import StopTime
 from transit_advisor.infrastructure.database.models.stoptime import (
     StopTimeModel,
 )
+from transit_advisor.infrastructure.database.models.trip import (
+    TripModel,
+)
 
 
 class SqlAlchemyStopTimeRepository:
@@ -27,17 +30,9 @@ class SqlAlchemyStopTimeRepository:
         )
 
         self._session.add(stop_time_model)
-        self._session.commit()
+        self._session.flush()
         self._session.refresh(stop_time_model)
-
-        return StopTime(
-            id=stop_time_model.id,
-            trip_id=stop_time_model.trip_id,
-            stop_id=stop_time_model.stop_id,
-            arrival_time=stop_time_model.arrival_time,
-            departure_time=stop_time_model.departure_time,
-            stop_sequence=stop_time_model.stop_sequence,
-        )
+        return self._to_domain(stop_time_model)
 
     def find_by_trip_id(
         self,
@@ -49,18 +44,48 @@ class SqlAlchemyStopTimeRepository:
             .order_by(StopTimeModel.stop_sequence)
         )
 
-        stop_time_models = self._session.scalars(
-            statement,
-        ).all()
+        return [self._to_domain(m) for m in self._session.scalars(statement).all()]
 
-        return [
-            StopTime(
-                id=model.id,
-                trip_id=model.trip_id,
-                stop_id=model.stop_id,
-                arrival_time=model.arrival_time,
-                departure_time=model.departure_time,
-                stop_sequence=model.stop_sequence,
+    def find_by_trip_ids(self, trip_ids: list[int]) -> list[StopTime]:
+        if not trip_ids:
+            return []
+        statement = (
+            select(StopTimeModel)
+            .where(StopTimeModel.trip_id.in_(trip_ids))
+            .order_by(StopTimeModel.trip_id, StopTimeModel.stop_sequence)
+        )
+        return [self._to_domain(m) for m in self._session.scalars(statement).all()]
+
+    def find_by_stop_id(self, stop_id: int) -> list[StopTime]:
+        statement = (
+            select(StopTimeModel)
+            .where(StopTimeModel.stop_id == stop_id)
+            .order_by(StopTimeModel.arrival_time)
+        )
+        return [self._to_domain(m) for m in self._session.scalars(statement).all()]
+
+    def find_by_route_id_and_version(
+        self,
+        route_id: int,
+        schedule_version_id: int,
+    ) -> list[StopTime]:
+        statement = (
+            select(StopTimeModel)
+            .join(TripModel, StopTimeModel.trip_id == TripModel.id)
+            .where(
+                TripModel.route_id == route_id,
+                TripModel.schedule_version_id == schedule_version_id,
             )
-            for model in stop_time_models
-        ]
+            .order_by(StopTimeModel.trip_id, StopTimeModel.stop_sequence)
+        )
+        return [self._to_domain(m) for m in self._session.scalars(statement).all()]
+
+    def _to_domain(self, model: StopTimeModel) -> StopTime:
+        return StopTime(
+            id=model.id,
+            trip_id=model.trip_id,
+            stop_id=model.stop_id,
+            arrival_time=model.arrival_time,
+            departure_time=model.departure_time,
+            stop_sequence=model.stop_sequence,
+        )

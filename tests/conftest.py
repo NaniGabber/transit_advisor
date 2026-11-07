@@ -12,10 +12,18 @@ from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
 
-from tests.services.fake_repos import FakeNotificationRepository
+from tests.services.fake_repos import (
+    FakeGtfsImportService,
+    FakeNotificationRepository,
+    FakeRouteRepository,
+    FakeStopTimeRepository,
+    FakeSubscriptionRepository,
+    FakeTripRepository,
+)
 from transit_advisor.api.dependencies import (
     get_feed_upload_service,
     get_notification_repository,
+    get_session,
 )
 from transit_advisor.api.feeds import router as feeds_router
 from transit_advisor.api.notification import router as notifications_router
@@ -23,7 +31,10 @@ from transit_advisor.api.subscription import router as subscriptions_router
 from transit_advisor.domain.agency import Agency
 from transit_advisor.domain.route import Route
 from transit_advisor.domain.scheduleversion import ScheduleVersion
+from transit_advisor.domain.stop import Stop
 from transit_advisor.domain.subscription import Subscription
+from transit_advisor.domain.trip import Trip
+from transit_advisor.infrastructure.archive.gtfs_archive_reader import GtfsArchiveReader
 from transit_advisor.infrastructure.database.base import Base
 from transit_advisor.infrastructure.repositories.agency import (
     SqlAlchemyAgencyRepository,
@@ -37,6 +48,9 @@ from transit_advisor.infrastructure.repositories.scheduleversion import (
 from transit_advisor.infrastructure.repositories.stop import (
     SqlAlchemyStopRepository,
 )
+from transit_advisor.infrastructure.repositories.stoptime import (
+    SqlAlchemyStopTimeRepository,
+)
 from transit_advisor.infrastructure.repositories.subscription import (
     SqlAlchemySubscriptionRepository,
 )
@@ -44,6 +58,9 @@ from transit_advisor.infrastructure.repositories.trip import SqlAlchemyTripRepos
 from transit_advisor.services.checksum_service import ChecksumService
 from transit_advisor.services.feed_upload_service import FeedUploadService
 from transit_advisor.services.feed_validation_service import FeedValidator
+from transit_advisor.services.notification_service import NotificationService
+from transit_advisor.services.schedule_diff_service import ScheduleDiffService
+from transit_advisor.services.schedule_update_service import ScheduleUpdateService
 from transit_advisor.services.schedule_version_service import ScheduleVersionService
 
 load_dotenv()
@@ -123,6 +140,48 @@ def trip_repository(
 
 
 @pytest.fixture
+def trip(
+    route: Route,
+    schedule_version: ScheduleVersion,
+    trip_repository: SqlAlchemyTripRepository,
+) -> Trip:
+    assert route.id is not None
+    assert schedule_version.id is not None
+
+    return trip_repository.save(
+        Trip(
+            id=None,
+            route_id=route.id,
+            trip_id="trip_1",
+            schedule_version_id=schedule_version.id,
+        )
+    )
+
+
+@pytest.fixture
+def trip_factory(
+    route: Route,
+    schedule_version: ScheduleVersion,
+    trip_repository: SqlAlchemyTripRepository,
+) -> Callable[[str], Trip]:
+    assert route.id is not None
+    assert schedule_version.id is not None
+
+    def create(trip_id: str) -> Trip:
+        assert route.id is not None
+        return trip_repository.save(
+            Trip(
+                id=None,
+                route_id=route.id,
+                trip_id=trip_id,
+                schedule_version_id=schedule_version.id,
+            )
+        )
+
+    return create
+
+
+@pytest.fixture
 def schedule_version_repository(
     session: Session,
 ) -> SqlAlchemyScheduleVersionRepository:
@@ -149,29 +208,25 @@ def feed_upload_service(
         schedule_version_service=ScheduleVersionService(
             repository=schedule_version_repository,
         ),
+        archive_reader=GtfsArchiveReader(),
+        import_service=FakeGtfsImportService(),
     )
 
 
 @pytest.fixture
 def app(
+    session: Session,
     feed_upload_service: FeedUploadService,
 ) -> Generator[FastAPI, None, None]:
     app = FastAPI()
+    app.include_router(feeds_router)
+    app.include_router(subscriptions_router)
+    app.include_router(notifications_router)
 
-    app.include_router(
-        feeds_router,
-    )
-
-    app.include_router(
-        subscriptions_router,
-    )
-    app.include_router(
-        notifications_router,
-    )
     app.dependency_overrides[get_feed_upload_service] = lambda: feed_upload_service
+    app.dependency_overrides[get_session] = lambda: session
 
     yield app
-
     app.dependency_overrides.clear()
 
 
@@ -327,4 +382,99 @@ def notification_parents(
     return (
         subscription.id,
         version.id,
+    )
+
+
+@pytest.fixture
+def fake_notification_repository() -> FakeNotificationRepository:
+    return FakeNotificationRepository()
+
+
+@pytest.fixture
+def fake_subscription_repository() -> FakeSubscriptionRepository:
+    return FakeSubscriptionRepository()
+
+
+@pytest.fixture
+def fake_trip_repository() -> FakeTripRepository:
+    return FakeTripRepository()
+
+
+@pytest.fixture
+def fake_route_repository() -> FakeRouteRepository:
+    return FakeRouteRepository()
+
+
+@pytest.fixture
+def fake_stoptime_repository() -> FakeStopTimeRepository:
+    return FakeStopTimeRepository()
+
+
+@pytest.fixture
+def notification_service(
+    fake_notification_repository: FakeNotificationRepository,
+) -> NotificationService:
+    return NotificationService(
+        notification_repository=fake_notification_repository,
+    )
+
+
+@pytest.fixture
+def schedule_update_service(
+    notification_service: NotificationService,
+    fake_subscription_repository: FakeSubscriptionRepository,
+    fake_route_repository: FakeRouteRepository,
+    fake_trip_repository: FakeTripRepository,
+    fake_stoptime_repository: FakeStopTimeRepository,
+) -> ScheduleUpdateService:
+    return ScheduleUpdateService(
+        diff_service=ScheduleDiffService(),
+        notification_service=notification_service,
+        subscription_repository=fake_subscription_repository,
+        route_repository=fake_route_repository,
+        trip_repository=fake_trip_repository,
+        stoptime_repository=fake_stoptime_repository,
+    )
+
+
+@pytest.fixture
+def stoptime_repository(
+    session: Session,
+) -> SqlAlchemyStopTimeRepository:
+    return SqlAlchemyStopTimeRepository(session)
+
+
+@pytest.fixture
+def stop(stop_factory: Callable[[str, str], Stop]) -> Stop:
+    return stop_factory("1", "Station")
+
+
+@pytest.fixture
+def stop_factory(
+    stop_repository: SqlAlchemyStopRepository,
+) -> Callable[[str, str], Stop]:
+    def create(stop_id: str, stop_name: str) -> Stop:
+        return stop_repository.save(
+            Stop(
+                id=None,
+                stop_id=stop_id,
+                name=stop_name,
+                latitude=50.0,
+                longitude=36.0,
+            )
+        )
+
+    return create
+
+
+@pytest.fixture
+def schedule_version(
+    schedule_version_repository: SqlAlchemyScheduleVersionRepository,
+) -> ScheduleVersion:
+    return schedule_version_repository.save(
+        ScheduleVersion(
+            id=None,
+            checksum="a" * 64,
+            imported_at=datetime.now(),
+        )
     )

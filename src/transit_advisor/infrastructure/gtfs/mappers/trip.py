@@ -5,6 +5,7 @@ from transit_advisor.infrastructure.gtfs.parsing import normalize
 def to_trip(
     row: dict[str, str],
     route_id: int,
+    schedule_version_id: int,
 ) -> Trip | None:
     try:
         return Trip(
@@ -13,8 +14,9 @@ def to_trip(
             trip_id=normalize(
                 row.get("trip_id", ""),
             ),
+            schedule_version_id=schedule_version_id,
             headsign=normalize(
-                row.get("trip_headsign", ""),
+                row.get("trip_headsign") or "",
             )
             or None,
         )

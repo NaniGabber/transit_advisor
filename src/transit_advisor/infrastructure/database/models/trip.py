@@ -1,4 +1,4 @@
-from sqlalchemy import ForeignKey, String
+from sqlalchemy import ForeignKey, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column
 
 from transit_advisor.infrastructure.database.base import Base
@@ -15,5 +15,9 @@ class TripModel(Base):
         String(100),
         unique=True,
     )
-
+    schedule_version_id: Mapped[int] = mapped_column(
+        Integer,
+        ForeignKey("schedule_versions.id"),
+        nullable=True,
+    )
     headsign: Mapped[str | None]

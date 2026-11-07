@@ -14,11 +14,14 @@ class SqlAlchemyTripRepository:
 
     def save(self, trip: Trip) -> Trip:
         trip_model = TripModel(
-            trip_id=trip.trip_id, route_id=trip.route_id, headsign=trip.headsign
+            trip_id=trip.trip_id,
+            route_id=trip.route_id,
+            headsign=trip.headsign,
+            schedule_version_id=trip.schedule_version_id,
         )
 
         self._session.add(trip_model)
-        self._session.commit()
+        self._session.flush()
         self._session.refresh(trip_model)
 
         return Trip(
@@ -26,6 +29,7 @@ class SqlAlchemyTripRepository:
             trip_id=trip_model.trip_id,
             route_id=trip_model.route_id,
             headsign=trip_model.headsign,
+            schedule_version_id=trip_model.schedule_version_id,
         )
 
     def find_by_trip_id(self, trip_id: str) -> Trip | None:
@@ -38,9 +42,22 @@ class SqlAlchemyTripRepository:
         if trip_model is None:
             return None
 
+        return self._to_domain(trip_model)
+
+    def find_by_schedule_version_id(
+        self,
+        schedule_version_id: int,
+    ) -> list[Trip]:
+        statement = select(TripModel).where(
+            TripModel.schedule_version_id == schedule_version_id
+        )
+        return [self._to_domain(m) for m in self._session.scalars(statement).all()]
+
+    def _to_domain(self, model: TripModel) -> Trip:
         return Trip(
-            id=trip_model.id,
-            trip_id=trip_model.trip_id,
-            route_id=trip_model.route_id,
-            headsign=trip_model.headsign,
+            id=model.id,
+            trip_id=model.trip_id,
+            route_id=model.route_id,
+            headsign=model.headsign,
+            schedule_version_id=model.schedule_version_id,
         )

@@ -30,20 +30,10 @@ class SqlAlchemyRouteRepository:
         )
 
         self._session.add(route_model)
-        self._session.commit()
+        self._session.flush()
         self._session.refresh(route_model)
 
-        return Route(
-            id=route_model.id,
-            agency_id=route_model.agency_id,
-            route_id=route_model.route_id,
-            short_name=route_model.short_name,
-            long_name=route_model.long_name,
-            route_type=route_model.route_type,
-            description=route_model.description,
-            color=route_model.color,
-            text_color=route_model.text_color,
-        )
+        return self._to_domain(route_model)
 
     def find_by_route_id(
         self,
@@ -57,15 +47,20 @@ class SqlAlchemyRouteRepository:
 
         if route_model is None:
             return None
+        return self._to_domain(route_model)
 
+    def find_by_id(self, route_id: int) -> Route | None:
+        model = self._session.get(RouteModel, route_id)
+        if model is None:
+            return None
+        return self._to_domain(model)
+
+    def _to_domain(self, model: RouteModel) -> Route:
         return Route(
-            id=route_model.id,
-            agency_id=route_model.agency_id,
-            route_id=route_model.route_id,
-            short_name=route_model.short_name,
-            long_name=route_model.long_name,
-            route_type=route_model.route_type,
-            description=route_model.description,
-            color=route_model.color,
-            text_color=route_model.text_color,
+            id=model.id,
+            agency_id=model.agency_id,
+            route_id=model.route_id,
+            short_name=model.short_name,
+            long_name=model.long_name,
+            route_type=model.route_type,
         )

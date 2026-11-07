@@ -1,11 +1,17 @@
+from datetime import datetime
+
 from transit_advisor.domain.agency import Agency
 from transit_advisor.domain.route import Route
+from transit_advisor.domain.scheduleversion import ScheduleVersion
 from transit_advisor.domain.trip import Trip
 from transit_advisor.infrastructure.repositories.agency import (
     SqlAlchemyAgencyRepository,
 )
 from transit_advisor.infrastructure.repositories.route import (
     SqlAlchemyRouteRepository,
+)
+from transit_advisor.infrastructure.repositories.scheduleversion import (
+    SqlAlchemyScheduleVersionRepository,
 )
 from transit_advisor.infrastructure.repositories.trip import (
     SqlAlchemyTripRepository,
@@ -15,6 +21,7 @@ from transit_advisor.infrastructure.repositories.trip import (
 def test_save_trip(
     agency_repository: SqlAlchemyAgencyRepository,
     route_repository: SqlAlchemyRouteRepository,
+    schedule_version_repository: SqlAlchemyScheduleVersionRepository,
     trip_repository: SqlAlchemyTripRepository,
 ) -> None:
     agency = agency_repository.save(
@@ -41,11 +48,22 @@ def test_save_trip(
 
     assert route.id is not None
 
+    version = schedule_version_repository.save(
+        ScheduleVersion(
+            id=None,
+            checksum="a" * 64,
+            imported_at=datetime.now(),
+        )
+    )
+
+    assert version.id is not None
+
     trip = Trip(
         id=None,
         route_id=route.id,
         trip_id="trip_1",
         headsign="City Center",
+        schedule_version_id=version.id,
     )
 
     saved = trip_repository.save(trip)
@@ -57,6 +75,7 @@ def test_save_trip(
 def test_find_by_trip_id(
     agency_repository: SqlAlchemyAgencyRepository,
     route_repository: SqlAlchemyRouteRepository,
+    schedule_version_repository: SqlAlchemyScheduleVersionRepository,
     trip_repository: SqlAlchemyTripRepository,
 ) -> None:
     agency = agency_repository.save(
@@ -67,8 +86,7 @@ def test_find_by_trip_id(
             timezone="Europe/Kyiv",
         )
     )
-    if agency.id is None:
-        assert agency.id is not None
+    assert agency.id is not None
 
     route = route_repository.save(
         Route(
@@ -80,8 +98,16 @@ def test_find_by_trip_id(
             route_type=3,
         )
     )
-    if route.id is None:
-        assert route.id is not None
+    assert route.id is not None
+
+    version = schedule_version_repository.save(
+        ScheduleVersion(
+            id=None,
+            checksum="a" * 64,
+            imported_at=datetime.now(),
+        )
+    )
+    assert version.id is not None
 
     trip_repository.save(
         Trip(
@@ -89,6 +115,7 @@ def test_find_by_trip_id(
             route_id=route.id,
             trip_id="trip_1",
             headsign="City Center",
+            schedule_version_id=version.id,
         )
     )
 
@@ -114,6 +141,7 @@ def test_find_by_trip_id_returns_none_for_missing_trip(
 def test_saved_trip_can_be_loaded(
     agency_repository: SqlAlchemyAgencyRepository,
     route_repository: SqlAlchemyRouteRepository,
+    schedule_version_repository: SqlAlchemyScheduleVersionRepository,
     trip_repository: SqlAlchemyTripRepository,
 ) -> None:
     agency = agency_repository.save(
@@ -125,8 +153,7 @@ def test_saved_trip_can_be_loaded(
         )
     )
 
-    if agency.id is None:
-        assert agency.id is not None
+    assert agency.id is not None
 
     route = route_repository.save(
         Route(
@@ -139,8 +166,17 @@ def test_saved_trip_can_be_loaded(
         )
     )
 
-    if route.id is None:
-        assert route.id is not None
+    assert route.id is not None
+
+    version = schedule_version_repository.save(
+        ScheduleVersion(
+            id=None,
+            checksum="a" * 64,
+            imported_at=datetime.now(),
+        )
+    )
+
+    assert version.id is not None
 
     saved = trip_repository.save(
         Trip(
@@ -148,6 +184,7 @@ def test_saved_trip_can_be_loaded(
             route_id=route.id,
             trip_id="trip_1",
             headsign="City Center",
+            schedule_version_id=version.id,
         )
     )
 

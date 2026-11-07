@@ -38,8 +38,7 @@ class FeedUploadService:
             return UploadResult(imported=False, duplicate=True, checksum=checksum)
 
         self._import_service.import_all(
-            archive_path,
-            self._archive_reader,
+            archive_path, self._archive_reader, schedule_version_id=version.id or 0
         )
 
         return UploadResult(imported=True, duplicate=False, checksum=checksum)

@@ -184,11 +184,16 @@ class FakeGtfsArchiveReader(GtfsArchiveReader):
 class FakeGtfsImportService(GtfsImportService):
     def __init__(self) -> None:
         self.imported_count = 0
+        self.last_schedule_version_id: int | None = None
 
     def import_all(
-        self, archive_path: Path, reader: GtfsArchiveReader
+        self,
+        archive_path: Path,
+        reader: GtfsArchiveReader,
+        schedule_version_id: int,
     ) -> dict[str, int]:
         self.imported_count += 1
+        self.last_schedule_version_id = schedule_version_id
         return {"agencies": 1, "routes": 1, "stops": 1, "trips": 1, "stop_times": 1}
 
 

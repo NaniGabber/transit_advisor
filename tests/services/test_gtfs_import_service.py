@@ -4,7 +4,6 @@ from transit_advisor.domain.stop import Stop
 from transit_advisor.domain.trip import Trip
 from transit_advisor.services.gtfs_import_service import GtfsImportService
 
-# Імпортуємо функцію, яка повертає контейнер
 from .fake_repos import FakeContainer, get_service
 
 
@@ -35,7 +34,6 @@ def test_import_agencies_saves_valid_agencies() -> None:
 
     container.service.import_agencies(iter(rows))
 
-    # Тепер ми маємо доступ до сховища через container
     assert len(container.agency_repository.saved) == 1
     agency = container.agency_repository.saved[0]
 
@@ -61,7 +59,6 @@ def test_import_agencies_skips_invalid_rows() -> None:
 
 def _get_service_with_agency() -> GtfsImportService:
     container = get_service()
-    # Додаємо агентство в сховище заздалегідь
     container.agency_repository.save(
         Agency(
             id=1,
@@ -235,7 +232,7 @@ def test_import_stops_skips_invalid_row_missing_id() -> None:
     container = get_service()
     rows = [
         {
-            "stop_id": "",  # Порожній ID
+            "stop_id": "",
             "stop_name": "Railway Station",
             "stop_lat": "49.989",
             "stop_lon": "36.230",
@@ -254,7 +251,7 @@ def test_import_stops_skips_invalid_row_missing_coordinates() -> None:
         {
             "stop_id": "S2",
             "stop_name": "Unknown Place",
-            "stop_lat": "",  # Немає широти
+            "stop_lat": "",
             "stop_lon": "36.230",
         }
     ]
@@ -275,7 +272,7 @@ def test_import_stops_imports_only_valid_stops() -> None:
             "stop_lon": "36.230",
         },
         {
-            "stop_id": "",  # Невалідний (немає ID)
+            "stop_id": "",
             "stop_name": "Invalid Stop",
             "stop_lat": "49.989",
             "stop_lon": "36.230",
@@ -328,7 +325,7 @@ def test_import_trips_returns_imported_count() -> None:
         }
     ]
 
-    imported = container.service.import_trips(iter(rows))
+    imported = container.service.import_trips(iter(rows), schedule_version_id=1)
 
     assert imported == 1
 
@@ -361,14 +358,32 @@ def test_import_trips_saves_valid_trip() -> None:
         }
     ]
 
-    container.service.import_trips(iter(rows))
+    container.service.import_trips(iter(rows), schedule_version_id=42)
 
     assert len(container.trip_repository.saved) == 1
     trip = container.trip_repository.saved[0]
 
     assert trip.trip_id == "T1"
-    assert trip.route_id == 1  # Перевіряємо, що зберігся внутрішній ID маршруту
+    assert trip.route_id == 1
     assert trip.headsign == "Center"
+    assert trip.schedule_version_id == 42
+
+
+def test_import_trips_sets_schedule_version_id() -> None:
+    container = _get_service_with_route()
+
+    rows = [
+        {"route_id": "11", "trip_id": "T1", "trip_headsign": "Center"},
+        {"route_id": "11", "trip_id": "T2", "trip_headsign": "Suburbs"},
+    ]
+
+    imported = container.service.import_trips(iter(rows), schedule_version_id=7)
+
+    assert imported == 2
+    saved = container.trip_repository.saved
+    assert len(saved) == 2
+    assert all(trip.schedule_version_id == 7 for trip in saved)
+    assert {trip.trip_id for trip in saved} == {"T1", "T2"}
 
 
 def test_import_trips_skips_unknown_route() -> None:
@@ -376,13 +391,13 @@ def test_import_trips_skips_unknown_route() -> None:
 
     rows = [
         {
-            "route_id": "999",  # Такого маршруту немає в БД
+            "route_id": "999",
             "trip_id": "T1",
             "trip_headsign": "Center",
         }
     ]
 
-    imported = container.service.import_trips(iter(rows))
+    imported = container.service.import_trips(iter(rows), schedule_version_id=1)
 
     assert imported == 0
 
@@ -408,19 +423,19 @@ def test_import_trips_skips_invalid_trip() -> None:
     rows = [
         {
             "route_id": "11",
-            "trip_id": "",  # Невалідний рейс (немає trip_id)
+            "trip_id": "",
             "trip_headsign": "Center",
         }
     ]
 
-    imported = container.service.import_trips(iter(rows))
+    imported = container.service.import_trips(iter(rows), schedule_version_id=1)
 
     assert imported == 0
     assert len(container.trip_repository.saved) == 0
 
 
 def test_import_trips_imports_only_valid_trips() -> None:
-    container = _get_service_with_route()  # Тепер тут контейнер
+    container = _get_service_with_route()
 
     rows = [
         {"route_id": "11", "trip_id": "T1", "trip_headsign": "Valid"},
@@ -428,7 +443,7 @@ def test_import_trips_imports_only_valid_trips() -> None:
         {"route_id": "11", "trip_id": "", "trip_headsign": "Invalid"},
     ]
 
-    imported = container.service.import_trips(iter(rows))  # Звертаємось до service
+    imported = container.service.import_trips(iter(rows), schedule_version_id=1)
 
     assert imported == 1
     assert len(container.trip_repository.saved) == 1
@@ -466,6 +481,7 @@ def _get_service_with_trip_and_stop() -> FakeContainer:
             route_id=route.id,
             trip_id="trip_1",
             headsign="City Center",
+            schedule_version_id=1,
         )
     )
     assert trip.id is not None

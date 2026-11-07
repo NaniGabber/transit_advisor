@@ -33,6 +33,7 @@ class GtfsImportService:
         self,
         archive_path: Path,
         reader: GtfsArchiveReader,
+        schedule_version_id: int,
     ) -> dict[str, int]:
         stats: dict[str, int] = {}
 
@@ -53,7 +54,8 @@ class GtfsImportService:
 
         if reader.exists(archive_path, "trips.txt"):
             stats["trips"] = self.import_trips(
-                reader.read_csv(archive_path, "trips.txt")
+                reader.read_csv(archive_path, "trips.txt"),
+                schedule_version_id,
             )
 
         if reader.exists(archive_path, "stop_times.txt"):
@@ -127,6 +129,7 @@ class GtfsImportService:
     def import_trips(
         self,
         rows: Iterator[dict[str, str]],
+        schedule_version_id: int,
     ) -> int:
         imported = 0
 
@@ -140,6 +143,7 @@ class GtfsImportService:
             trip = to_trip(
                 row=row,
                 route_id=route.id,
+                schedule_version_id=schedule_version_id,
             )
 
             if trip is None:

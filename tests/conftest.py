@@ -454,3 +454,16 @@ def stop_factory(
         )
 
     return create
+
+
+@pytest.fixture
+def schedule_version(
+    schedule_version_repository: SqlAlchemyScheduleVersionRepository,
+) -> ScheduleVersion:
+    return schedule_version_repository.save(
+        ScheduleVersion(
+            id=None,
+            checksum="a" * 64,
+            imported_at=datetime.now(),
+        )
+    )

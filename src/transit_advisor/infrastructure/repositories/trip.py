@@ -14,11 +14,14 @@ class SqlAlchemyTripRepository:
 
     def save(self, trip: Trip) -> Trip:
         trip_model = TripModel(
-            trip_id=trip.trip_id, route_id=trip.route_id, headsign=trip.headsign
+            trip_id=trip.trip_id,
+            route_id=trip.route_id,
+            headsign=trip.headsign,
+            schedule_version_id=trip.schedule_version_id,
         )
 
         self._session.add(trip_model)
-        self._session.commit()
+        self._session.flush()
         self._session.refresh(trip_model)
 
         return Trip(
@@ -26,6 +29,7 @@ class SqlAlchemyTripRepository:
             trip_id=trip_model.trip_id,
             route_id=trip_model.route_id,
             headsign=trip_model.headsign,
+            schedule_version_id=trip_model.schedule_version_id,
         )
 
     def find_by_trip_id(self, trip_id: str) -> Trip | None:
@@ -54,5 +58,6 @@ class SqlAlchemyTripRepository:
             id=model.id,
             trip_id=model.trip_id,
             route_id=model.route_id,
+            headsign=model.headsign,
             schedule_version_id=model.schedule_version_id,
         )

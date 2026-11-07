@@ -1,10 +1,8 @@
-## Entity Relationship Diagram
-
-```mermaid
 erDiagram
 
     Agency ||--o{ Route : operates
-    Route ||--o{ Trip : contains
+    ScheduleVersion ||--o{ Trip : contains
+    Route ||--o{ Trip : has
     Trip ||--o{ StopTime : schedules
     Stop ||--o{ StopTime : serves
 
@@ -38,6 +36,7 @@ erDiagram
     Trip {
         int id PK
         int route_id FK
+        int schedule_version_id FK
         string trip_id
         string headsign
     }
@@ -83,4 +82,3 @@ erDiagram
         string checksum
         datetime imported_at
     }
-```

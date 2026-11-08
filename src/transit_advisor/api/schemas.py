@@ -71,3 +71,13 @@ class RouteResponse(BaseModel):
     short_name: str
     long_name: str
     route_type: int
+
+
+class DepartureResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    trip_id: int = Field(..., description="Internal trip ID.")
+    stop_id: int = Field(..., description="Internal stop ID.")
+    arrival_time: str = Field(..., description="Arrival time (HH:MM:SS).")
+    departure_time: str = Field(..., description="Departure time (HH:MM:SS).")
+    stop_sequence: int = Field(..., description="Sequence of the stop in the trip.")

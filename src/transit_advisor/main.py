@@ -10,6 +10,10 @@ from transit_advisor.api.subscription import (
     router as subscriptions_router,
 )
 
+from transit_advisor.api.routes import (
+    router as routes_router,
+)
+
 app = FastAPI()
 
 app.include_router(
@@ -22,4 +26,8 @@ app.include_router(
 
 app.include_router(
     notifications_router,
+)
+
+app.include_router(
+    routes_router,
 )

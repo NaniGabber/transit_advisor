@@ -178,14 +178,30 @@ def test_find_by_user_id_returns_all_for_user(
 
 def test_find_by_user_id_does_not_leak_other_users(
     notification_repository: SqlAlchemyNotificationRepository,
+    route_repository: SqlAlchemyRouteRepository,
+    subscription_repository: SqlAlchemySubscriptionRepository,
+    agency: Agency,
     notification_parents: tuple[int, int],
 ) -> None:
-    subscription_id, version_id = notification_parents
+    _, version_id = notification_parents
+
+    if agency.id is None:
+        raise RuntimeError("agency fixture must save the agency")
+
+    route_1 = route_repository.save(_make_route(agency.id, "100"))
+    route_2 = route_repository.save(_make_route(agency.id, "101"))
+    if route_1.id is None or route_2.id is None:
+        raise RuntimeError("route repository did not assign an id")
+
+    sub_1 = subscription_repository.save(_make_subscription(1, route_1.id))
+    sub_2 = subscription_repository.save(_make_subscription(2, route_2.id))
+    if sub_1.id is None or sub_2.id is None:
+        raise RuntimeError("subscription repository did not assign an id")
 
     notification_repository.save(
         _make_notification(
             user_id=1,
-            subscription_id=subscription_id,
+            subscription_id=sub_1.id,
             schedule_version_id=version_id,
             message="For user 1",
         )
@@ -193,7 +209,7 @@ def test_find_by_user_id_does_not_leak_other_users(
     notification_repository.save(
         _make_notification(
             user_id=2,
-            subscription_id=subscription_id,
+            subscription_id=sub_2.id,
             schedule_version_id=version_id,
             message="For user 2",
         )
@@ -242,8 +258,8 @@ def test_find_unread_by_user_id_excludes_read(
     if agency.id is None:
         raise RuntimeError("agency fixture must save the agency")
 
-    route_1 = route_repository.save(_make_route(agency.id, "11"))
-    route_2 = route_repository.save(_make_route(agency.id, "12"))
+    route_1 = route_repository.save(_make_route(agency.id, "1001"))
+    route_2 = route_repository.save(_make_route(agency.id, "1002"))
     if route_1.id is None or route_2.id is None:
         raise RuntimeError("route repository did not assign an id")
 
@@ -331,7 +347,7 @@ def test_find_unread_by_user_id_returns_only_unread_notifications(
     if agency.id is None:
         raise RuntimeError("agency fixture must save the agency")
 
-    route_2 = route_repository.save(_make_route(agency.id, "12"))
+    route_2 = route_repository.save(_make_route(agency.id, "1002"))
     if route_2.id is None:
         raise RuntimeError("route repository did not assign an id")
 
@@ -399,8 +415,8 @@ def test_find_unread_by_user_id_does_not_leak_other_users(
     if agency.id is None:
         raise RuntimeError("agency fixture must save the agency")
 
-    route_1 = route_repository.save(_make_route(agency.id, "11"))
-    route_2 = route_repository.save(_make_route(agency.id, "12"))
+    route_1 = route_repository.save(_make_route(agency.id, "1001"))
+    route_2 = route_repository.save(_make_route(agency.id, "1002"))
     if route_1.id is None or route_2.id is None:
         raise RuntimeError("route repository did not assign an id")
 

@@ -14,6 +14,8 @@ from transit_advisor.api.routes import (
     router as routes_router,
 )
 
+from transit_advisor.api.stops import router as stops_router
+
 app = FastAPI()
 
 
@@ -36,4 +38,8 @@ app.include_router(
 
 app.include_router(
     routes_router,
+)
+
+app.include_router(
+    stops_router,
 )

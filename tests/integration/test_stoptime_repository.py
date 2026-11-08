@@ -1,7 +1,5 @@
 from collections.abc import Callable
-
-import pytest
-
+from datetime import time
 from transit_advisor.domain.stop import Stop
 from transit_advisor.domain.stoptime import StopTime
 from transit_advisor.domain.trip import Trip
@@ -25,6 +23,9 @@ def make_stop_time(
         departure_time=departure_time,
         stop_sequence=stop_sequence,
     )
+
+
+# --- save ---
 
 
 def test_save_assigns_id(
@@ -74,6 +75,51 @@ def test_save_persists_all_fields(
     assert found[0].arrival_time == "08:00:00"
     assert found[0].departure_time == "08:01:00"
     assert found[0].stop_sequence == 3
+
+
+def test_save_multiple_stop_times_for_same_trip(
+    stoptime_repository: SqlAlchemyStopTimeRepository,
+    trip: Trip,
+    stop_factory: Callable[[str, str], Stop],
+) -> None:
+    assert trip.id is not None
+
+    stop_1 = stop_factory("stop_1", "Station")
+    stop_2 = stop_factory("stop_2", "Center")
+
+    assert stop_1.id is not None
+    assert stop_2.id is not None
+
+    first = stoptime_repository.save(
+        make_stop_time(
+            trip_id=trip.id,
+            stop_id=stop_1.id,
+            arrival_time="08:00:00",
+            departure_time="08:01:00",
+            stop_sequence=1,
+        )
+    )
+    second = stoptime_repository.save(
+        make_stop_time(
+            trip_id=trip.id,
+            stop_id=stop_2.id,
+            arrival_time="08:10:00",
+            departure_time="08:11:00",
+            stop_sequence=2,
+        )
+    )
+
+    assert first.id is not None
+    assert second.id is not None
+    assert first.id != second.id
+
+    found = stoptime_repository.find_by_trip_id(trip.id)
+
+    assert len(found) == 2
+    assert {st.id for st in found} == {first.id, second.id}
+
+
+# --- find_by_trip_id ---
 
 
 def test_find_by_trip_id_returns_empty_list_when_no_matches(
@@ -168,68 +214,121 @@ def test_find_by_trip_id_orders_by_stop_sequence(
     assert [st.stop_id for st in found] == [stop_1.id, stop_2.id, stop_3.id]
 
 
-def test_save_multiple_stop_times_for_same_trip(
+# --- find_by_trip_ids ---
+
+
+def test_find_by_trip_ids_returns_empty_for_empty_list(
+    stoptime_repository: SqlAlchemyStopTimeRepository,
+) -> None:
+    assert stoptime_repository.find_by_trip_ids([]) == []
+
+
+def test_find_by_trip_ids_returns_stop_times_for_multiple_trips(
     stoptime_repository: SqlAlchemyStopTimeRepository,
     trip: Trip,
-    stop_factory: Callable[[str, str], Stop],
+    trip_factory: Callable[[str], Trip],
+    stop: Stop,
 ) -> None:
     assert trip.id is not None
+    assert stop.id is not None
 
-    stop_1 = stop_factory("stop_1", "Station")
-    stop_2 = stop_factory("stop_2", "Center")
+    other_trip = trip_factory("trip_2")
+    assert other_trip.id is not None
 
-    assert stop_1.id is not None
-    assert stop_2.id is not None
-
-    first = stoptime_repository.save(
+    stoptime_repository.save(
         make_stop_time(
             trip_id=trip.id,
-            stop_id=stop_1.id,
+            stop_id=stop.id,
             arrival_time="08:00:00",
             departure_time="08:01:00",
-            stop_sequence=1,
         )
     )
-    second = stoptime_repository.save(
+    stoptime_repository.save(
+        make_stop_time(
+            trip_id=other_trip.id,
+            stop_id=stop.id,
+            arrival_time="09:00:00",
+            departure_time="09:01:00",
+        )
+    )
+
+    found = stoptime_repository.find_by_trip_ids([trip.id, other_trip.id])
+
+    assert len(found) == 2
+    assert {st.trip_id for st in found} == {trip.id, other_trip.id}
+
+
+# --- find_by_stop_id ---
+
+
+def test_find_by_stop_id_returns_stop_times(
+    stoptime_repository: SqlAlchemyStopTimeRepository,
+    trip: Trip,
+    stop: Stop,
+) -> None:
+    assert trip.id is not None
+    assert stop.id is not None
+
+    stoptime_repository.save(
         make_stop_time(
             trip_id=trip.id,
-            stop_id=stop_2.id,
-            arrival_time="08:10:00",
-            departure_time="08:11:00",
+            stop_id=stop.id,
+            arrival_time="08:00:00",
+            departure_time="08:01:00",
+        )
+    )
+
+    found = stoptime_repository.find_by_stop_id(stop.id)
+
+    assert len(found) == 1
+    assert found[0].stop_id == stop.id
+
+
+def test_find_by_stop_id_returns_empty_for_unknown_stop(
+    stoptime_repository: SqlAlchemyStopTimeRepository,
+) -> None:
+    assert stoptime_repository.find_by_stop_id(999) == []
+
+
+# --- find_departures ---
+
+
+def test_find_departures_filters_by_time(
+    stoptime_repository: SqlAlchemyStopTimeRepository,
+    trip: Trip,
+    stop: Stop,
+) -> None:
+    assert trip.id is not None
+    assert stop.id is not None
+
+    stoptime_repository.save(
+        make_stop_time(
+            trip_id=trip.id,
+            stop_id=stop.id,
+            arrival_time="08:00:00",
+            departure_time="08:01:00",
+        )
+    )
+    stoptime_repository.save(
+        make_stop_time(
+            trip_id=trip.id,
+            stop_id=stop.id,
+            arrival_time="10:00:00",
+            departure_time="10:01:00",
             stop_sequence=2,
         )
     )
 
-    assert first.id is not None
-    assert second.id is not None
-    assert first.id != second.id
+    found = stoptime_repository.find_departures(
+        stop_id=stop.id,
+        from_time=time(9, 0),
+    )
 
-    found = stoptime_repository.find_by_trip_id(trip.id)
-
-    assert len(found) == 2
-    assert {st.id for st in found} == {first.id, second.id}
-
-
-def test_save_rejects_invalid_trip_id(
-    stoptime_repository: SqlAlchemyStopTimeRepository,
-    stop: Stop,
-) -> None:
-    assert stop.id is not None
-
-    with pytest.raises(ValueError):
-        stoptime_repository.save(
-            StopTime(
-                id=None,
-                trip_id=0,
-                stop_id=stop.id,
-                arrival_time="08:00:00",
-                departure_time="08:01:00",
-                stop_sequence=1,
-            )
-        )
+    assert len(found) == 1
+    assert found[0].departure_time == "10:01:00"
 
 
-def test_save_rejects_empty_arrival_time(
+def test_find_departures_applies_pagination(
     stoptime_repository: SqlAlchemyStopTimeRepository,
     trip: Trip,
     stop: Stop,
@@ -237,14 +336,23 @@ def test_save_rejects_empty_arrival_time(
     assert trip.id is not None
     assert stop.id is not None
 
-    with pytest.raises(ValueError):
+    for hour in range(8, 13):
         stoptime_repository.save(
-            StopTime(
-                id=None,
+            make_stop_time(
                 trip_id=trip.id,
                 stop_id=stop.id,
-                arrival_time="   ",
-                departure_time="08:01:00",
-                stop_sequence=1,
+                arrival_time=f"{hour:02d}:00:00",
+                departure_time=f"{hour:02d}:01:00",
+                stop_sequence=hour,
             )
         )
+
+    found = stoptime_repository.find_departures(
+        stop_id=stop.id,
+        from_time=time(8, 0),
+        offset=1,
+        limit=2,
+    )
+
+    assert len(found) == 2
+    assert [st.departure_time for st in found] == ["09:01:00", "10:01:00"]

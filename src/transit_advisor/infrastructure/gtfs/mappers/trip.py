@@ -1,9 +1,11 @@
+from collections.abc import Mapping
+
 from transit_advisor.domain.trip import Trip
 from transit_advisor.infrastructure.gtfs.parsing import normalize
 
 
 def to_trip(
-    row: dict[str, str],
+    row: Mapping[str, str | None],
     route_id: int,
     schedule_version_id: int,
 ) -> Trip | None:
@@ -12,7 +14,7 @@ def to_trip(
             id=None,
             route_id=route_id,
             trip_id=normalize(
-                row.get("trip_id", ""),
+                row.get("trip_id") or "",
             ),
             schedule_version_id=schedule_version_id,
             headsign=normalize(

@@ -4,7 +4,7 @@ from transit_advisor.infrastructure.gtfs.mappers.trip import (
 
 
 def test_to_trip_returns_trip_for_valid_row() -> None:
-    row = {
+    row: dict[str, str | None] = {
         "trip_id": "trip_001",
         "trip_headsign": "City Center",
     }
@@ -22,7 +22,7 @@ def test_to_trip_returns_trip_for_valid_row() -> None:
 
 
 def test_to_trip_allows_empty_headsign() -> None:
-    row = {
+    row: dict[str, str | None] = {
         "trip_id": "trip_001",
         "trip_headsign": "",
     }
@@ -38,7 +38,7 @@ def test_to_trip_allows_empty_headsign() -> None:
 
 
 def test_to_trip_normalizes_headsign() -> None:
-    row = {
+    row: dict[str, str | None] = {
         "trip_id": "trip_001",
         "trip_headsign": "   City    Center   ",
     }
@@ -54,7 +54,7 @@ def test_to_trip_normalizes_headsign() -> None:
 
 
 def test_to_trip_allows_missing_headsign() -> None:
-    row = {
+    row: dict[str, str | None] = {
         "trip_id": "trip_001",
         "trip_headsign": None,
     }
@@ -70,7 +70,7 @@ def test_to_trip_allows_missing_headsign() -> None:
 
 
 def test_to_trip_returns_none_for_empty_trip_id() -> None:
-    row = {
+    row: dict[str, str | None] = {
         "trip_id": "",
         "trip_headsign": "City Center",
     }

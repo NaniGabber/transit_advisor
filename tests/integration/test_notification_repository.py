@@ -35,14 +35,6 @@ def _make_subscription(user_id: int, route_id: int) -> Subscription:
     )
 
 
-def _make_schedule_version() -> ScheduleVersion:
-    return ScheduleVersion(
-        id=None,
-        checksum="a" * 64,
-        imported_at=datetime.now(),
-    )
-
-
 def _make_notification(
     user_id: int,
     subscription_id: int,
@@ -340,3 +332,53 @@ def test_find_unread_by_user_id_returns_only_unread_notifications(
     assert len(notifications) == 1
     assert notifications[0].is_unread
     assert notifications[0].message == "Unread notification"
+
+
+def test_save_persists_is_read_true(
+    notification_repository: SqlAlchemyNotificationRepository,
+    notification_parents: tuple[int, int],
+) -> None:
+    subscription_id, version_id = notification_parents
+
+    saved = notification_repository.save(
+        _make_notification(
+            user_id=1,
+            subscription_id=subscription_id,
+            schedule_version_id=version_id,
+            message="Read notification",
+            is_read=True,
+        )
+    )
+
+    assert saved.is_read is True
+
+
+def test_find_unread_by_user_id_does_not_leak_other_users(
+    notification_repository: SqlAlchemyNotificationRepository,
+    notification_parents: tuple[int, int],
+) -> None:
+    subscription_id, version_id = notification_parents
+
+    notification_repository.save(
+        _make_notification(
+            user_id=1,
+            subscription_id=subscription_id,
+            schedule_version_id=version_id,
+            message="Unread for user 1",
+            is_read=False,
+        )
+    )
+    notification_repository.save(
+        _make_notification(
+            user_id=2,
+            subscription_id=subscription_id,
+            schedule_version_id=version_id,
+            message="Unread for user 2",
+            is_read=False,
+        )
+    )
+
+    notifications = notification_repository.find_unread_by_user_id(1)
+
+    assert len(notifications) == 1
+    assert notifications[0].message == "Unread for user 1"

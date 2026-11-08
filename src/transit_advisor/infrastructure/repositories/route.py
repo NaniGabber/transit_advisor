@@ -5,6 +5,8 @@ from transit_advisor.domain.route import Route
 from transit_advisor.infrastructure.database.models.route import (
     RouteModel,
 )
+from transit_advisor.infrastructure.database.models.stoptime import StopTimeModel
+from transit_advisor.infrastructure.database.models.trip import TripModel
 
 
 class SqlAlchemyRouteRepository:
@@ -64,3 +66,34 @@ class SqlAlchemyRouteRepository:
             long_name=model.long_name,
             route_type=model.route_type,
         )
+
+    def search(
+        self,
+        query: str | None = None,
+        stop_id: int | None = None,
+        offset: int = 0,
+        limit: int = 20,
+    ) -> list[Route]:
+        statement = select(RouteModel)
+
+        if query:
+            pattern = f"%{query}%"
+            statement = statement.where(
+                (RouteModel.route_id.ilike(pattern))
+                | (RouteModel.short_name.ilike(pattern))
+                | (RouteModel.long_name.ilike(pattern))
+            )
+
+        if stop_id is not None:
+            statement = (
+                statement.join(TripModel, TripModel.route_id == RouteModel.id)
+                .join(StopTimeModel, StopTimeModel.trip_id == TripModel.id)
+                .where(StopTimeModel.stop_id == stop_id)
+                .distinct()
+            )
+
+        statement = statement.offset(offset).limit(limit)
+
+        models = self._session.scalars(statement).all()
+
+        return [self._to_domain(model) for model in models]

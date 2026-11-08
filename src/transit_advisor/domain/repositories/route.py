@@ -15,3 +15,11 @@ class RouteRepository(Protocol):
     ) -> Route | None: ...
 
     def find_by_id(self, route_id: int) -> Route | None: ...
+
+    def search(
+        self,
+        query: str | None = None,
+        stop_id: int | None = None,
+        offset: int = 0,
+        limit: int = 20,
+    ) -> list[Route]: ...

@@ -1,5 +1,6 @@
 from collections.abc import Callable
 from datetime import time
+
 from transit_advisor.domain.stop import Stop
 from transit_advisor.domain.stoptime import StopTime
 from transit_advisor.domain.trip import Trip
@@ -23,9 +24,6 @@ def make_stop_time(
         departure_time=departure_time,
         stop_sequence=stop_sequence,
     )
-
-
-# --- save ---
 
 
 def test_save_assigns_id(
@@ -117,9 +115,6 @@ def test_save_multiple_stop_times_for_same_trip(
 
     assert len(found) == 2
     assert {st.id for st in found} == {first.id, second.id}
-
-
-# --- find_by_trip_id ---
 
 
 def test_find_by_trip_id_returns_empty_list_when_no_matches(
@@ -214,9 +209,6 @@ def test_find_by_trip_id_orders_by_stop_sequence(
     assert [st.stop_id for st in found] == [stop_1.id, stop_2.id, stop_3.id]
 
 
-# --- find_by_trip_ids ---
-
-
 def test_find_by_trip_ids_returns_empty_for_empty_list(
     stoptime_repository: SqlAlchemyStopTimeRepository,
 ) -> None:
@@ -258,9 +250,6 @@ def test_find_by_trip_ids_returns_stop_times_for_multiple_trips(
     assert {st.trip_id for st in found} == {trip.id, other_trip.id}
 
 
-# --- find_by_stop_id ---
-
-
 def test_find_by_stop_id_returns_stop_times(
     stoptime_repository: SqlAlchemyStopTimeRepository,
     trip: Trip,
@@ -288,9 +277,6 @@ def test_find_by_stop_id_returns_empty_for_unknown_stop(
     stoptime_repository: SqlAlchemyStopTimeRepository,
 ) -> None:
     assert stoptime_repository.find_by_stop_id(999) == []
-
-
-# --- find_departures ---
 
 
 def test_find_departures_filters_by_time(

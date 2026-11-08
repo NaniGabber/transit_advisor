@@ -39,6 +39,9 @@ from transit_advisor.infrastructure.database.base import Base
 from transit_advisor.infrastructure.repositories.agency import (
     SqlAlchemyAgencyRepository,
 )
+from transit_advisor.infrastructure.repositories.notification import (
+    SqlAlchemyNotificationRepository,
+)
 from transit_advisor.infrastructure.repositories.route import (
     SqlAlchemyRouteRepository,
 )
@@ -53,9 +56,6 @@ from transit_advisor.infrastructure.repositories.stoptime import (
 )
 from transit_advisor.infrastructure.repositories.subscription import (
     SqlAlchemySubscriptionRepository,
-)
-from transit_advisor.infrastructure.repositories.notification import (
-    SqlAlchemyNotificationRepository,
 )
 from transit_advisor.infrastructure.repositories.trip import SqlAlchemyTripRepository
 from transit_advisor.services.checksum_service import ChecksumService

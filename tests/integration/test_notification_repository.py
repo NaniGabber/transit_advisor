@@ -3,7 +3,6 @@ from datetime import datetime
 from transit_advisor.domain.agency import Agency
 from transit_advisor.domain.notification import Notification
 from transit_advisor.domain.route import Route
-from transit_advisor.domain.scheduleversion import ScheduleVersion
 from transit_advisor.domain.subscription import Subscription
 from transit_advisor.infrastructure.repositories.notification import (
     SqlAlchemyNotificationRepository,

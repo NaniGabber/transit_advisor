@@ -60,3 +60,14 @@ class RouteDiffResponse(BaseModel):
     added_routes: list[str]
     removed_routes: list[str]
     changed_stop_times: dict[str, list[int]]
+
+
+class RouteResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    agency_id: int
+    route_id: str
+    short_name: str
+    long_name: str
+    route_type: int

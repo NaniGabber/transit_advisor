@@ -28,7 +28,7 @@ class SqlAlchemyStopRepository:
         )
 
         self._session.add(stop_model)
-        self._session.commit()
+        self._session.flush()
         self._session.refresh(stop_model)
 
         return Stop(

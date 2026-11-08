@@ -16,6 +16,12 @@ from transit_advisor.api.routes import (
 
 app = FastAPI()
 
+
+@app.get("/")
+def root() -> dict[str, str]:
+    return {"status": "ok"}
+
+
 app.include_router(
     feeds_router,
 )

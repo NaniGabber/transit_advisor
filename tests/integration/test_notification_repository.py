@@ -79,14 +79,23 @@ def test_save_notification(
 
 def test_save_assigns_distinct_ids(
     notification_repository: SqlAlchemyNotificationRepository,
+    route_repository: SqlAlchemyRouteRepository,
+    subscription_repository: SqlAlchemySubscriptionRepository,
+    agency: Agency,
     notification_parents: tuple[int, int],
 ) -> None:
-    subscription_id, version_id = notification_parents
+    subscription_id_1, version_id = notification_parents
+    assert agency.id is not None
+
+    route_2 = route_repository.save(_make_route(agency.id, "12"))
+    assert route_2.id is not None
+    subscription_2 = subscription_repository.save(_make_subscription(1, route_2.id))
+    assert subscription_2.id is not None
 
     first = notification_repository.save(
         _make_notification(
             user_id=1,
-            subscription_id=subscription_id,
+            subscription_id=subscription_id_1,
             schedule_version_id=version_id,
             message="First",
         )
@@ -94,7 +103,7 @@ def test_save_assigns_distinct_ids(
     second = notification_repository.save(
         _make_notification(
             user_id=1,
-            subscription_id=subscription_id,
+            subscription_id=subscription_2.id,  # <-- інша підписка
             schedule_version_id=version_id,
             message="Second",
         )
@@ -131,14 +140,23 @@ def test_find_by_user_id(
 
 def test_find_by_user_id_returns_all_for_user(
     notification_repository: SqlAlchemyNotificationRepository,
+    route_repository: SqlAlchemyRouteRepository,
+    subscription_repository: SqlAlchemySubscriptionRepository,
+    agency: Agency,
     notification_parents: tuple[int, int],
 ) -> None:
-    subscription_id, version_id = notification_parents
+    subscription_id_1, version_id = notification_parents
+    assert agency.id is not None
+
+    route_2 = route_repository.save(_make_route(agency.id, "12"))
+    assert route_2.id is not None
+    subscription_2 = subscription_repository.save(_make_subscription(1, route_2.id))
+    assert subscription_2.id is not None
 
     notification_repository.save(
         _make_notification(
             user_id=1,
-            subscription_id=subscription_id,
+            subscription_id=subscription_id_1,
             schedule_version_id=version_id,
             message="First",
         )
@@ -146,7 +164,7 @@ def test_find_by_user_id_returns_all_for_user(
     notification_repository.save(
         _make_notification(
             user_id=1,
-            subscription_id=subscription_id,
+            subscription_id=subscription_2.id,
             schedule_version_id=version_id,
             message="Second",
         )
@@ -214,14 +232,30 @@ def test_find_unread_by_user_id(
 
 def test_find_unread_by_user_id_excludes_read(
     notification_repository: SqlAlchemyNotificationRepository,
+    route_repository: SqlAlchemyRouteRepository,
+    subscription_repository: SqlAlchemySubscriptionRepository,
+    agency: Agency,
     notification_parents: tuple[int, int],
 ) -> None:
-    subscription_id, version_id = notification_parents
+    _, version_id = notification_parents
+
+    if agency.id is None:
+        raise RuntimeError("agency fixture must save the agency")
+
+    route_1 = route_repository.save(_make_route(agency.id, "11"))
+    route_2 = route_repository.save(_make_route(agency.id, "12"))
+    if route_1.id is None or route_2.id is None:
+        raise RuntimeError("route repository did not assign an id")
+
+    sub_1 = subscription_repository.save(_make_subscription(1, route_1.id))
+    sub_2 = subscription_repository.save(_make_subscription(1, route_2.id))
+    if sub_1.id is None or sub_2.id is None:
+        raise RuntimeError("subscription repository did not assign an id")
 
     notification_repository.save(
         _make_notification(
             user_id=1,
-            subscription_id=subscription_id,
+            subscription_id=sub_1.id,
             schedule_version_id=version_id,
             message="Unread",
             is_read=False,
@@ -230,7 +264,7 @@ def test_find_unread_by_user_id_excludes_read(
     notification_repository.save(
         _make_notification(
             user_id=1,
-            subscription_id=subscription_id,
+            subscription_id=sub_2.id,
             schedule_version_id=version_id,
             message="Read",
             is_read=True,
@@ -355,14 +389,30 @@ def test_save_persists_is_read_true(
 
 def test_find_unread_by_user_id_does_not_leak_other_users(
     notification_repository: SqlAlchemyNotificationRepository,
+    route_repository: SqlAlchemyRouteRepository,
+    subscription_repository: SqlAlchemySubscriptionRepository,
+    agency: Agency,
     notification_parents: tuple[int, int],
 ) -> None:
-    subscription_id, version_id = notification_parents
+    _, version_id = notification_parents
+
+    if agency.id is None:
+        raise RuntimeError("agency fixture must save the agency")
+
+    route_1 = route_repository.save(_make_route(agency.id, "11"))
+    route_2 = route_repository.save(_make_route(agency.id, "12"))
+    if route_1.id is None or route_2.id is None:
+        raise RuntimeError("route repository did not assign an id")
+
+    sub_1 = subscription_repository.save(_make_subscription(1, route_1.id))
+    sub_2 = subscription_repository.save(_make_subscription(2, route_2.id))
+    if sub_1.id is None or sub_2.id is None:
+        raise RuntimeError("subscription repository did not assign an id")
 
     notification_repository.save(
         _make_notification(
             user_id=1,
-            subscription_id=subscription_id,
+            subscription_id=sub_1.id,
             schedule_version_id=version_id,
             message="Unread for user 1",
             is_read=False,
@@ -371,7 +421,7 @@ def test_find_unread_by_user_id_does_not_leak_other_users(
     notification_repository.save(
         _make_notification(
             user_id=2,
-            subscription_id=subscription_id,
+            subscription_id=sub_2.id,
             schedule_version_id=version_id,
             message="Unread for user 2",
             is_read=False,

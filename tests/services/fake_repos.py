@@ -1,6 +1,7 @@
 from collections.abc import Iterator
 from dataclasses import replace
 from pathlib import Path
+from datetime import time
 
 from transit_advisor.domain.agency import Agency
 from transit_advisor.domain.notification import Notification
@@ -54,6 +55,34 @@ class FakeRouteRepository:
 
     def find_by_id(self, route_id: int) -> Route | None:
         return next((r for r in self.saved if r.id == route_id), None)
+
+    def search(
+        self,
+        query: str | None = None,
+        stop_id: int | None = None,
+        offset: int = 0,
+        limit: int = 20,
+    ) -> list[Route]:
+        results = self.saved
+
+        if query:
+            pattern = query.lower()
+            results = [
+                route
+                for route in results
+                if pattern in route.route_id.lower()
+                or pattern in route.short_name.lower()
+                or pattern in route.long_name.lower()
+            ]
+
+        if stop_id is not None:
+            # У фейку немає зв'язку Trip/StopTime, тому цей фільтр
+            # не може бути реалістично перевірений без додаткових даних.
+            # Для юніт-тестів зазвичай повертаємо порожній список,
+            # якщо не передано спеціальний мапінг.
+            results = []
+
+        return results[offset : offset + limit]
 
 
 class FakeStopRepository:
@@ -133,6 +162,23 @@ class FakeStopTimeRepository:
         raise NotImplementedError(
             "FakeStopTimeRepository does not know about trips/routes"
         )
+
+    def find_departures(
+        self,
+        stop_id: int,
+        from_time: time | None = None,
+        offset: int = 0,
+        limit: int = 20,
+    ) -> list[StopTime]:
+        results = [st for st in self.saved if st.stop_id == stop_id]
+
+        if from_time is not None:
+            from_str = from_time.strftime("%H:%M:%S")
+            results = [st for st in results if st.departure_time >= from_str]
+
+        results = sorted(results, key=lambda st: st.departure_time)
+
+        return results[offset : offset + limit]
 
 
 class FakeScheduleVersionRepository:

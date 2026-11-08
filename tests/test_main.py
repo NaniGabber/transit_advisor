@@ -25,7 +25,7 @@ def test_openapi_schema_is_available() -> None:
     assert "/subscriptions" in schema["paths"]
     assert "/notifications/users/{user_id}" in schema["paths"]
     assert "/routes" in schema["paths"]
-    # assert "/stops/{stop_id}/departures" in schema["paths"]
+    assert "/stops/{stop_id}/departures" in schema["paths"]
 
 
 def test_docs_endpoint_is_available() -> None:

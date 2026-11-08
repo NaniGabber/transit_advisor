@@ -6,6 +6,7 @@ from transit_advisor.api.feeds import (
 from transit_advisor.api.notification import (
     router as notifications_router,
 )
+from transit_advisor.api.routes import router as routes_router
 from transit_advisor.api.subscription import (
     router as subscriptions_router,
 )
@@ -22,4 +23,8 @@ app.include_router(
 
 app.include_router(
     notifications_router,
+)
+
+app.include_router(
+    routes_router,
 )

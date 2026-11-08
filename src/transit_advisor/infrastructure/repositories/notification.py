@@ -16,6 +16,17 @@ class SqlAlchemyNotificationRepository:
     ) -> None:
         self._session = session
 
+    def _to_domain(self, model: NotificationModel) -> Notification:
+        return Notification(
+            id=model.id,
+            user_id=model.user_id,
+            subscription_id=model.subscription_id,
+            schedule_version_id=model.schedule_version_id,
+            message=model.message,
+            created_at=model.created_at,
+            is_read=model.is_read,
+        )
+
     def save(
         self,
         notification: Notification,
@@ -33,15 +44,7 @@ class SqlAlchemyNotificationRepository:
         self._session.commit()
         self._session.refresh(model)
 
-        return Notification(
-            id=model.id,
-            user_id=model.user_id,
-            subscription_id=model.subscription_id,
-            schedule_version_id=model.schedule_version_id,
-            message=model.message,
-            created_at=model.created_at,
-            is_read=model.is_read,
-        )
+        return self._to_domain(model)
 
     def find_by_user_id(
         self,
@@ -57,18 +60,7 @@ class SqlAlchemyNotificationRepository:
             statement,
         ).all()
 
-        return [
-            Notification(
-                id=model.id,
-                user_id=model.user_id,
-                subscription_id=model.subscription_id,
-                schedule_version_id=model.schedule_version_id,
-                message=model.message,
-                created_at=model.created_at,
-                is_read=model.is_read,
-            )
-            for model in models
-        ]
+        return [self._to_domain(model) for model in models]
 
     def find_unread_by_user_id(
         self,
@@ -85,15 +77,4 @@ class SqlAlchemyNotificationRepository:
             statement,
         ).all()
 
-        return [
-            Notification(
-                id=model.id,
-                user_id=model.user_id,
-                subscription_id=model.subscription_id,
-                schedule_version_id=model.schedule_version_id,
-                message=model.message,
-                created_at=model.created_at,
-                is_read=model.is_read,
-            )
-            for model in models
-        ]
+        return [self._to_domain(model) for model in models]

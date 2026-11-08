@@ -1,5 +1,6 @@
 from sqlalchemy import select
 from sqlalchemy.orm import Session
+from datetime import time
 
 from transit_advisor.domain.stoptime import StopTime
 from transit_advisor.infrastructure.database.models.stoptime import (
@@ -89,3 +90,24 @@ class SqlAlchemyStopTimeRepository:
             departure_time=model.departure_time,
             stop_sequence=model.stop_sequence,
         )
+
+    def find_departures(
+        self,
+        stop_id: int,
+        from_time: time | None = None,
+        offset: int = 0,
+        limit: int = 20,
+    ) -> list[StopTime]:
+        statement = select(StopTimeModel).where(StopTimeModel.stop_id == stop_id)
+
+        if from_time is not None:
+            # Порівнюємо як рядки, бо в БД час зберігається у форматі "HH:MM:SS"
+            from_str = from_time.strftime("%H:%M:%S")
+            statement = statement.where(StopTimeModel.departure_time >= from_str)
+
+        statement = (
+            statement.order_by(StopTimeModel.departure_time).offset(offset).limit(limit)
+        )
+
+        models = self._session.scalars(statement).all()
+        return [self._to_domain(model) for model in models]

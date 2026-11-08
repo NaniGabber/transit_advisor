@@ -1,6 +1,7 @@
+from datetime import time
+
 from sqlalchemy import select
 from sqlalchemy.orm import Session
-from datetime import time
 
 from transit_advisor.domain.stoptime import StopTime
 from transit_advisor.infrastructure.database.models.stoptime import (

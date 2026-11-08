@@ -1,7 +1,7 @@
 from collections.abc import Iterator
 from dataclasses import replace
-from pathlib import Path
 from datetime import time
+from pathlib import Path
 
 from transit_advisor.domain.agency import Agency
 from transit_advisor.domain.notification import Notification

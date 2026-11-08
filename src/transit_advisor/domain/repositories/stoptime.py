@@ -1,5 +1,6 @@
-from typing import Protocol
 from datetime import time
+from typing import Protocol
+
 from transit_advisor.domain.stoptime import StopTime
 
 

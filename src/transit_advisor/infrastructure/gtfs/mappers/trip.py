@@ -1,6 +1,7 @@
+from collections.abc import Mapping
+
 from transit_advisor.domain.trip import Trip
 from transit_advisor.infrastructure.gtfs.parsing import normalize
-from collections.abc import Mapping
 
 
 def to_trip(

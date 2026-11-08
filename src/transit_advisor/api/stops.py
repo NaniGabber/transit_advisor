@@ -1,4 +1,4 @@
-from datetime import datetime, time
+from datetime import datetime
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, Query
@@ -36,14 +36,14 @@ def get_departures(
     if from_time:
         try:
             parsed_time = datetime.strptime(from_time, "%H:%M").time()
-        except ValueError:
+        except ValueError as err:
             # Якщо формат неправильний, повертаємо 422
             from fastapi import HTTPException, status
 
             raise HTTPException(
-                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
                 detail="Invalid time format. Use HH:MM.",
-            )
+            ) from err
     else:
         parsed_time = datetime.now().time()
 

@@ -1,7 +1,15 @@
+from typing import Annotated
+
 from fastapi import APIRouter, Depends, HTTPException, Query
 
-from transit_advisor.api.dependencies import get_schedule_update_service
-from transit_advisor.api.schemas import RouteDiffResponse
+from transit_advisor.api.dependencies import (
+    get_route_repository,
+    get_schedule_update_service,
+)
+from transit_advisor.api.schemas import RouteDiffResponse, RouteResponse
+from transit_advisor.infrastructure.repositories.route import (
+    SqlAlchemyRouteRepository,
+)
 from transit_advisor.services.schedule_update_service import ScheduleUpdateService
 
 router = APIRouter(prefix="/routes", tags=["routes"])
@@ -34,16 +42,6 @@ def get_route_diff(
         changed_stop_times=diff.changed_stop_times,
     )
 
-
-from typing import Annotated
-
-from fastapi import APIRouter, Depends, Query
-
-from transit_advisor.api.dependencies import get_route_repository
-from transit_advisor.api.schemas import RouteResponse
-from transit_advisor.infrastructure.repositories.route import (
-    SqlAlchemyRouteRepository,
-)
 
 router = APIRouter(prefix="/routes", tags=["routes"])
 

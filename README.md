@@ -37,6 +37,7 @@ Additional project documentation is available in the `docs` directory.
 | [docs/diagrams/ER_DIAGRAM.md](docs/diagrams/ER_DIAGRAM.md) | Database ER diagram |
 | [docs/diagrams/FEED_PROCESSING.md](docs/diagrams/FEED_PROCESSING.md) | GTFS feed import process |
 | [docs/diagrams/NOTIFICATION_WORKFLOW.md](docs/diagrams/NOTIFICATION_WORKFLOW.md) | Notification generation workflow |
+| [docs/API.md](docs/API.md) | API endpoint reference |
 
 ### Domain Layer
 

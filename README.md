@@ -58,8 +58,9 @@ src/transit_advisor
 - валідацію GTFS-архівів;
 - обчислення SHA-256 контрольних сум;
 - створення та керування версіями розкладів;
-- виявлення змін між версіями;
-- обробку підписок та сповіщень.
+- виявлення змін між версіями (`ScheduleDiffService`);
+- обробку підписок та сповіщень (`ScheduleUpdateService`);
+- пошук маршрутів та розклад за зупинкою.
 
 ### Infrastructure Layer
 
@@ -76,17 +77,20 @@ src/transit_advisor
 - імпорт agency.txt;
 - імпорт routes.txt;
 - імпорт stops.txt;
-- імпорт trips.txt;
+- імпорт trips.txt (з прив'язкою до `schedule_version_id`);
 - імпорт stop_times.txt;
 - збереження даних у PostgreSQL;
 - версіонування імпортованих розкладів;
 - визначення дублікатів імпорту за SHA-256 checksum;
-- порівняння версій розкладу на рівні маршрутів;
+- порівняння версій розкладу на рівні маршрутів та часу зупинок;
 - підписки користувачів на маршрути;
-- створення та збереження сповіщень.
+- створення та збереження сповіщень;
 - API для імпорту GTFS-фідів;
 - API для керування підписками;
 - API для отримання сповіщень;
+- API для пошуку маршрутів;
+- API для отримання розкладу за зупинкою;
+- API для порівняння версій розкладу маршруту;
 - автоматичне створення сповіщень при виявленні змін.
 
 Для кожного доменного об'єкта реалізовані:
@@ -117,13 +121,13 @@ Checksum Calculation
 Duplicate Detection
         │
         ▼
-GTFS Import
+GTFS Import (versioned Trips)
         │
         ▼
 Schedule Version Creation
         │
         ▼
-Schedule Change Detection
+ScheduleUpdateService (compare versions)
         │
         ▼
 Notifications
@@ -136,7 +140,20 @@ Notifications
 ### Feed API
 
 ```http
-POST /feeds\
+POST /feeds
+```
+
+### Route API
+
+```http
+GET /routes?q=&stop=&page=
+GET /routes/{id}/diff?from_version=&to_version=
+```
+
+### Stop API
+
+```http
+GET /stops/{id}/departures?from=&page=&page_size=
 ```
 
 ### Subscription API
@@ -165,7 +182,7 @@ GET /notifications/users/{user_id}/unread
 
 - доменні сутності;
 - бізнес-правила;
-- сервіси;
+- сервіси (`ScheduleDiffService`, `ScheduleUpdateService`);
 - GTFS-імпорт;
 - версіонування розкладів.
 
@@ -173,16 +190,19 @@ GET /notifications/users/{user_id}/unread
 
 Перевіряють:
 
-- SQLAlchemy репозиторії;
+- SQLAlchemy репозиторії (включаючи `search`, `find_departures`);
 - роботу з PostgreSQL;
 - коректність зв'язків між сутностями;
-- збереження та пошук даних.
+- збереження та пошук даних;
+- відсутність забруднення БД між тестами (через SAVEPOINT).
 
 ### API Tests
 
 Перевіряють:
 
 - Feed API;
+- Route API (пошук, порівняння версій);
+- Stop API (розклад за зупинкою);
 - Subscription API;
 - Notification API;
 - коректність HTTP-відповідей;
@@ -222,6 +242,8 @@ mypy src tests
 - PostgreSQL
 - SQLAlchemy
 - Psycopg
+- FastAPI
+- Pydantic
 - Pytest
 - MyPy
 - Ruff
@@ -235,12 +257,10 @@ mypy src tests
 
 Подальший розвиток системи передбачає:
 
-- пошук маршрутів за номером та зупинкою;
-- формування розкладу за конкретною зупинкою;
-- розширення механізму порівняння версій розкладу;
+- побудова варіантів проїзду між зупинками без пересадок;
+- аналітичні звіти (кількість рейсів за днями, інтервали руху, топ-зупинки);
 - email-повідомлення користувачам;
 - централізоване логування та моніторинг;
-- аналітичні звіти щодо транспортної мережі;
 - підтримку декількох транспортних операторів;
 - веб-інтерфейс для перегляду розкладів та історії змін.
 
@@ -251,8 +271,6 @@ mypy src tests
 Course project developed as part of the Python Programming course.
 
 **Author:** AlexandrPogrebnyuk
-
-
 
 Jira:
 ```bash

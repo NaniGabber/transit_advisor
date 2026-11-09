@@ -53,9 +53,6 @@ class FakeRouteRepository:
                 return route
         return None
 
-    def find_by_id(self, route_id: int) -> Route | None:
-        return next((r for r in self.saved if r.id == route_id), None)
-
     def search(
         self,
         query: str | None = None,
@@ -83,6 +80,9 @@ class FakeRouteRepository:
             results = []
 
         return results[offset : offset + limit]
+
+    def find_by_id(self, route_id: int) -> Route | None:
+        return next((r for r in self.saved if r.id == route_id), None)
 
 
 class FakeStopRepository:

@@ -28,6 +28,7 @@ Current entities:
 - Stop
 - Trip
 - StopTime
+- ScheduleVersion
 
 `Trip` is linked to `ScheduleVersion` via `Trip.schedule_version_id`.
 `StopTime` inherits the version through `Trip`.
@@ -86,7 +87,8 @@ See ADR-002 for the decision to keep them as reference data.
 Two paths are available:
 
 - `compare_routes(...)` — by surrogate `Trip.id` (used by `process_update`);
-- `compare_versions(...)` — by GTFS `trip_id` (used by `process_version_update`).
+- `compare_versions(...)` — by GTFS `trip_id` (used by `process_version_update`
+  and `compare_route_versions`).
 
 ### Limitation
 
@@ -209,21 +211,6 @@ Add:
 
 ---
 
-## Conclusion
-
-The current implementation prioritizes correctness, maintainability and extensibility.
-
-Future refactoring efforts should focus primarily on:
-
-1. Full schedule version support (**PARTIAL** — `Trip`/`StopTime` done,
-   `Route`/`Stop`/`Agency` deferred, see ADR-002).
-2. Timetable-level change detection (**DONE** — by GTFS `trip_id`).
-3. Transaction management (**PARTIAL** — `flush()` in repositories,
-   application-level transaction pending).
-4. Structured logging (**PLANNED**).
-5. Analytical features (**PLANNED**).
-
-
 ## GTFS Import Optimization
 
 ### Status: PLANNED
@@ -234,8 +221,8 @@ Current implementation performs repository lookups for each imported row.
 
 Example:
 
-- find_by_trip_id(...)
-- find_by_stop_id(...)
+- `find_by_trip_id(...)`
+- `find_by_stop_id(...)`
 
 This approach keeps memory consumption constant but generates a significant number of database queries for large GTFS datasets.
 
@@ -249,3 +236,64 @@ Future optimization may include:
 - bulk SQLAlchemy operations.
 
 This would significantly improve import performance for feeds containing millions of StopTime records.
+
+---
+
+## Test Database Isolation
+
+### Status: PARTIAL
+
+### Current State
+
+Integration tests use a shared PostgreSQL instance.
+
+The `session` fixture uses `SAVEPOINT` transactions to roll back changes after
+each test, preventing data from leaking between tests.
+
+### Limitation
+
+`Base.metadata.create_all` / `drop_all` may still be slow for large schemas.
+
+### Future Refactoring
+
+Consider using a dedicated test database or `pytest-postgresql` plugin for
+faster isolation.
+
+---
+
+## API Search and Pagination
+
+### Status: DONE
+
+### Current State
+
+- `GET /routes` supports `q` (query), `stop` (stop filter), `page`, `page_size`.
+- `GET /stops/{id}/departures` supports `from` (time filter), `page`, `page_size`.
+- `GET /routes/{id}/diff` supports `from_version`, `to_version`.
+
+### Limitation
+
+Pagination is offset-based, which may become slow for very large datasets.
+
+### Future Refactoring
+
+Switch to cursor-based pagination (keyset pagination) for large tables.
+
+---
+
+## Conclusion
+
+The current implementation prioritizes correctness, maintainability and extensibility.
+
+Future refactoring efforts should focus primarily on:
+
+1. Full schedule version support (**PARTIAL** — `Trip`/`StopTime` done,
+   `Route`/`Stop`/`Agency` deferred, see ADR-002).
+2. Timetable-level change detection (**DONE** — by GTFS `trip_id`).
+3. Transaction management (**PARTIAL** — `flush()` in repositories,
+   application-level transaction pending).
+4. Structured logging (**PLANNED**).
+5. Analytical features (**PLANNED**).
+6. Test database isolation (**PARTIAL** — SAVEPOINT used, but `create_all`
+   still slow).
+7. API search and pagination (**DONE** — offset-based, cursor-based planned).

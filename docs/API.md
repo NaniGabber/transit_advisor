@@ -1,6 +1,6 @@
 # API Reference
 
-Цей документ описує REST API сервісу Transit Advisor.
+This document describes the REST API of the Transit Advisor service.
 
 ## Base URL
 
@@ -8,11 +8,11 @@
 http://localhost:8000
 ```
 
-## Формати
+## Formats
 
-- Усі запити та відповіді використовують `application/json`, окрім завантаження файлів (`multipart/form-data`).
-- Час у полях `arrival_time` та `departure_time` передається у форматі `HH:MM:SS` (GTFS).
-- Дати (наприклад, `created_at`) передаються у форматі ISO 8601.
+- All requests and responses use `application/json`, except for file uploads, which use `multipart/form-data`.
+- Time values in the `arrival_time` and `departure_time` fields are provided in `HH:MM:SS` format (GTFS).
+- Dates (for example, `created_at`) are provided in ISO 8601 format.
 
 ---
 
@@ -20,11 +20,11 @@ http://localhost:8000
 
 ### `POST /feeds`
 
-Завантаження GTFS-архіву.
+Uploads a GTFS archive.
 
 **Request body:**
 
-`multipart/form-data` з полем `file` (ZIP-архів).
+`multipart/form-data` with a `file` field (ZIP archive).
 
 **Response (201 Created):**
 
@@ -38,8 +38,8 @@ http://localhost:8000
 
 **Errors:**
 
-- `422 Unprocessable Entity` — файл не є ZIP-архівом або не містить обов'язкових GTFS-файлів.
-- `409 Conflict` — архів із таким самим `checksum` уже імпортовано.
+- `422 Unprocessable Entity` – the file is not a ZIP archive or does not contain the required GTFS files.
+- `409 Conflict` – an archive with the same `checksum` has already been imported.
 
 ---
 
@@ -47,16 +47,16 @@ http://localhost:8000
 
 ### `GET /routes`
 
-Пошук маршрутів за номером, назвою або зупинкою.
+Searches routes by route number, name, or stop.
 
 **Query parameters:**
 
-| Параметр | Тип | Обов'язковий | Опис |
-|----------|-----|--------------|------|
-| `q` | string | Ні | Пошук за `route_id`, `short_name` або `long_name`. |
-| `stop` | integer | Ні | Фільтр за внутрішнім ID зупинки. |
-| `page` | integer | Ні | Номер сторінки (за замовчуванням `1`). |
-| `page_size` | integer | Ні | Кількість елементів на сторінці (за замовчуванням `20`, максимум `100`). |
+| Parameter | Type | Required | Description |
+|------------|------|----------|-------------|
+| `q` | string | No | Search by `route_id`, `short_name`, or `long_name`. |
+| `stop` | integer | No | Filter by internal stop ID. |
+| `page` | integer | No | Page number (default: `1`). |
+| `page_size` | integer | No | Number of items per page (default: `20`, maximum: `100`). |
 
 **Response (200 OK):**
 
@@ -75,20 +75,20 @@ http://localhost:8000
 
 ### `GET /routes/{route_id}/diff`
 
-Порівняння двох версій розкладу для конкретного маршруту.
+Compares two schedule versions for a specific route.
 
 **Path parameters:**
 
-| Параметр | Тип | Опис |
-|----------|-----|------|
-| `route_id` | integer | Внутрішній ID маршруту. |
+| Parameter | Type | Description |
+|------------|------|-------------|
+| `route_id` | integer | Internal route ID. |
 
 **Query parameters:**
 
-| Параметр | Тип | Обов'язковий | Опис |
-|----------|-----|--------------|------|
-| `from_version` | integer | Так | ID початкової версії розкладу. |
-| `to_version` | integer | Так | ID кінцевої версії розкладу. |
+| Parameter | Type | Required | Description |
+|------------|------|----------|-------------|
+| `from_version` | integer | Yes | Source schedule version ID. |
+| `to_version` | integer | Yes | Target schedule version ID. |
 
 **Response (200 OK):**
 
@@ -106,7 +106,7 @@ http://localhost:8000
 
 **Errors:**
 
-- `404 Not Found` — маршрут не знайдено.
+- `404 Not Found` – route not found.
 
 ---
 
@@ -114,21 +114,21 @@ http://localhost:8000
 
 ### `GET /stops/{stop_id}/departures`
 
-Розклад відправлень за зупинкою.
+Returns departure schedules for a stop.
 
 **Path parameters:**
 
-| Параметр | Тип | Опис |
-|----------|-----|------|
-| `stop_id` | integer | Внутрішній ID зупинки. |
+| Parameter | Type | Description |
+|------------|------|-------------|
+| `stop_id` | integer | Internal stop ID. |
 
 **Query parameters:**
 
-| Параметр | Тип | Обов'язковий | Опис |
-|----------|-----|--------------|------|
-| `from` | string | Ні | Час у форматі `HH:MM` (за замовчуванням — поточний). |
-| `page` | integer | Ні | Номер сторінки (за замовчуванням `1`). |
-| `page_size` | integer | Ні | Кількість елементів на сторінці (за замовчуванням `20`, максимум `100`). |
+| Parameter | Type | Required | Description |
+|------------|------|----------|-------------|
+| `from` | string | No | Time in `HH:MM` format (defaults to the current time). |
+| `page` | integer | No | Page number (default: `1`). |
+| `page_size` | integer | No | Number of items per page (default: `20`, maximum: `100`). |
 
 **Response (200 OK):**
 
@@ -146,7 +146,7 @@ http://localhost:8000
 
 **Errors:**
 
-- `422 Unprocessable Entity` — некоректний формат часу (не `HH:MM`).
+- `422 Unprocessable Entity` – invalid time format (must be `HH:MM`).
 
 ---
 
@@ -154,7 +154,7 @@ http://localhost:8000
 
 ### `POST /subscriptions`
 
-Створення підписки на маршрут.
+Creates a route subscription.
 
 **Request body:**
 
@@ -178,18 +178,18 @@ http://localhost:8000
 
 **Errors:**
 
-- `409 Conflict` — підписка вже існує.
-- `422 Unprocessable Entity` — некоректний payload.
+- `409 Conflict` – subscription already exists.
+- `422 Unprocessable Entity` – invalid payload.
 
 ### `GET /subscriptions/users/{user_id}`
 
-Отримання підписок користувача.
+Returns all subscriptions for a user.
 
 **Path parameters:**
 
-| Параметр | Тип | Опис |
-|----------|-----|------|
-| `user_id` | integer | ID користувача. |
+| Parameter | Type | Description |
+|------------|------|-------------|
+| `user_id` | integer | User ID. |
 
 **Response (200 OK):**
 
@@ -210,13 +210,13 @@ http://localhost:8000
 
 ### `GET /notifications/users/{user_id}`
 
-Отримання всіх сповіщень користувача.
+Returns all notifications for a user.
 
 **Path parameters:**
 
-| Параметр | Тип | Опис |
-|----------|-----|------|
-| `user_id` | integer | ID користувача. |
+| Parameter | Type | Description |
+|------------|------|-------------|
+| `user_id` | integer | User ID. |
 
 **Response (200 OK):**
 
@@ -236,13 +236,13 @@ http://localhost:8000
 
 ### `GET /notifications/users/{user_id}/unread`
 
-Отримання непрочитаних сповіщень користувача.
+Returns all unread notifications for a user.
 
 **Path parameters:**
 
-| Параметр | Тип | Опис |
-|----------|-----|------|
-| `user_id` | integer | ID користувача. |
+| Parameter | Type | Description |
+|------------|------|-------------|
+| `user_id` | integer | User ID. |
 
 **Response (200 OK):**
 
@@ -262,12 +262,12 @@ http://localhost:8000
 
 ---
 
-## Загальні коди помилок
+## Common Error Codes
 
-| Код | Опис |
-|-----|------|
-| `400 Bad Request` | Некоректний запит (наприклад, відсутні обов'язкові поля). |
-| `404 Not Found` | Ресурс не знайдено (наприклад, маршрут або користувач). |
-| `409 Conflict` | Конфлікт (наприклад, дублікат підписки або фіду). |
-| `422 Unprocessable Entity` | Помилка валідації (наприклад, некоректний формат часу або відсутні GTFS-файли). |
-| `500 Internal Server Error` | Внутрішня помилка сервера. |
+| Code | Description |
+|------|-------------|
+| `400 Bad Request` | Invalid request (for example, missing required fields). |
+| `404 Not Found` | Resource not found (for example, route or user). |
+| `409 Conflict` | Conflict (for example, duplicate subscription or feed). |
+| `422 Unprocessable Entity` | Validation error (for example, invalid time format or missing GTFS files). |
+| `500 Internal Server Error` | Internal server error. |

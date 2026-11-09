@@ -1,3 +1,4 @@
+from datetime import time
 from typing import Protocol
 
 from transit_advisor.domain.stoptime import StopTime
@@ -28,4 +29,12 @@ class StopTimeRepository(Protocol):
         self,
         route_id: int,
         schedule_version_id: int,
+    ) -> list[StopTime]: ...
+
+    def find_departures(
+        self,
+        stop_id: int,
+        from_time: time | None = None,
+        offset: int = 0,
+        limit: int = 20,
     ) -> list[StopTime]: ...

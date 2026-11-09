@@ -26,7 +26,7 @@ class SqlAlchemyScheduleVersionRepository:
         )
 
         self._session.add(version_model)
-        self._session.commit()
+        self._session.flush()
         self._session.refresh(version_model)
 
         return ScheduleVersion(

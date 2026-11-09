@@ -7,7 +7,9 @@ from transit_advisor.api.dependencies import (
     get_schedule_update_service,
 )
 from transit_advisor.api.schemas import RouteDiffResponse, RouteResponse
-from transit_advisor.infrastructure.repositories.route import SqlAlchemyRouteRepository
+from transit_advisor.infrastructure.repositories.route import (
+    SqlAlchemyRouteRepository,
+)
 from transit_advisor.services.schedule_update_service import ScheduleUpdateService
 
 router = APIRouter(prefix="/routes", tags=["routes"])
@@ -39,6 +41,9 @@ def get_route_diff(
         removed_routes=diff.removed_routes,
         changed_stop_times=diff.changed_stop_times,
     )
+
+
+router = APIRouter(prefix="/routes", tags=["routes"])
 
 
 @router.get(

@@ -39,6 +39,9 @@ from transit_advisor.infrastructure.database.base import Base
 from transit_advisor.infrastructure.repositories.agency import (
     SqlAlchemyAgencyRepository,
 )
+from transit_advisor.infrastructure.repositories.notification import (
+    SqlAlchemyNotificationRepository,
+)
 from transit_advisor.infrastructure.repositories.route import (
     SqlAlchemyRouteRepository,
 )
@@ -246,14 +249,9 @@ def subscription_repository(
 
 @pytest.fixture
 def notification_repository(
-    app: FastAPI,
-) -> Generator[FakeNotificationRepository, None, None]:
-    repo = FakeNotificationRepository()
-    app.dependency_overrides[get_notification_repository] = lambda: repo
-    try:
-        yield repo
-    finally:
-        app.dependency_overrides.clear()
+    session: Session,
+) -> SqlAlchemyNotificationRepository:
+    return SqlAlchemyNotificationRepository(session)
 
 
 @pytest.fixture
@@ -386,8 +384,15 @@ def notification_parents(
 
 
 @pytest.fixture
-def fake_notification_repository() -> FakeNotificationRepository:
-    return FakeNotificationRepository()
+def fake_notification_repository(
+    app: FastAPI,
+) -> Generator[FakeNotificationRepository, None, None]:
+    repo = FakeNotificationRepository()
+    app.dependency_overrides[get_notification_repository] = lambda: repo
+    try:
+        yield repo
+    finally:
+        app.dependency_overrides.clear()
 
 
 @pytest.fixture

@@ -29,7 +29,7 @@ class SqlAlchemyAgencyRepository:
         )
 
         self._session.add(agency_model)
-        self._session.commit()
+        self._session.flush()
         self._session.refresh(agency_model)
 
         return Agency(

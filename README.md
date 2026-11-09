@@ -28,13 +28,13 @@ src/transit_advisor
 
 | Документ | Опис |
 |-----------|-------------|
-| docs/ARCHITECTURE.md | Архітектура системи та прийняті архітектурні рішення |
-| docs/TESTING.md | Стратегія тестування та структура тестів |
-| docs/REQUIREMENTS_TRACEABILITY.md | Відповідність вимог реалізації |
-| docs/REFACTORING.md | Опис архітектурних особливостий та шляхів рефакторингу |d
-| docs/diagrams/ER_DIAGRAM.md | ER-діаграма бази даних |
-| docs/diagrams/FEED_PROCESSING.md | Процес імпорту GTFS-фідів |
-| docs/diagrams/NOTIFICATION_WORKFLOW.md | Процес створення сповіщень |
+| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | Архітектура системи та прийняті архітектурні рішення |
+| [docs/TESTING.md](docs/TESTING.md) | Стратегія тестування та структура тестів |
+| [docs/REQUIREMENTS_TRACEABILITY.md](docs/REQUIREMENTS_TRACEABILITY.md) | Відповідність вимог реалізації |
+| [docs/REFACTORING.md](docs/REFACTORING.md) | Опис архітектурних особливостей та шляхів рефакторингу |
+| [docs/diagrams/ER_DIAGRAM.md](docs/diagrams/ER_DIAGRAM.md) | ER-діаграма бази даних |
+| [docs/diagrams/FEED_PROCESSING.md](docs/diagrams/FEED_PROCESSING.md) | Процес імпорту GTFS-фідів |
+| [docs/diagrams/NOTIFICATION_WORKFLOW.md](docs/diagrams/NOTIFICATION_WORKFLOW.md) | Процес створення сповіщень |
 
 ### Domain Layer
 

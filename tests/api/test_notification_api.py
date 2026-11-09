@@ -24,9 +24,9 @@ def _make_notification(
 
 def test_get_notifications(
     client: TestClient,
-    notification_repository: FakeNotificationRepository,
+    fake_notification_repository: FakeNotificationRepository,
 ) -> None:
-    notification_repository.saved.extend(
+    fake_notification_repository.saved.extend(
         [
             _make_notification(1, user_id=42, is_read=False),
             _make_notification(2, user_id=42, is_read=True),
@@ -45,9 +45,9 @@ def test_get_notifications(
 
 def test_get_unread_notifications(
     client: TestClient,
-    notification_repository: FakeNotificationRepository,
+    fake_notification_repository: FakeNotificationRepository,
 ) -> None:
-    notification_repository.saved.extend(
+    fake_notification_repository.saved.extend(
         [
             _make_notification(1, user_id=42, is_read=False),
             _make_notification(2, user_id=42, is_read=True),
@@ -66,9 +66,9 @@ def test_get_unread_notifications(
 
 def test_returns_empty_list_for_unknown_user(
     client: TestClient,
-    notification_repository: FakeNotificationRepository,
+    fake_notification_repository: FakeNotificationRepository,
 ) -> None:
-    notification_repository.saved.append(
+    fake_notification_repository.saved.append(
         _make_notification(1, user_id=42, is_read=False)
     )
 

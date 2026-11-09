@@ -1,15 +1,17 @@
-[![Docker Image CI](https://github.com/NaniGabber/transit_advisor/actions/workflows/docker-image.yml/badge.svg?branch=main)](https://github.com/NaniGabber/transit_advisor/actions/workflows/docker-image.yml)      [![CI](https://github.com/NaniGabber/transit_advisor/actions/workflows/ci.yml/badge.svg)](https://github.com/NaniGabber/transit_advisor/actions/workflows/ci.yml)
+[![Docker Image CI](https://github.com/NaniGabber/transit_advisor/actions/workflows/docker-image.yml/badge.svg?branch=main)](https://github.com/NaniGabber/transit_advisor/actions/workflows/docker-image.yml)
+[![CI](https://github.com/NaniGabber/transit_advisor/actions/workflows/ci.yml/badge.svg)](https://github.com/NaniGabber/transit_advisor/actions/workflows/ci.yml)
 
-___
+---
+
 # Transit Advisor
 
-Transit Advisor — це інформаційна система для обробки та аналізу GTFS-розкладів громадського транспорту. Проєкт призначений для автоматизованого імпорту транспортних даних, відстеження змін між версіями розкладів та інформування користувачів про зміни, які їх цікавлять.
+Transit Advisor is an information system for processing and analyzing GTFS public transportation schedules. The project is designed for automated import of transit data, tracking schedule changes between versions, and notifying users about updates that interest them.
 
-Основна ідея системи полягає у перетворенні сирих GTFS-фідів на структуровані дані, збережені у базі даних, та подальшому виявленні відмінностей між завантаженими версіями розкладів.
+The core idea of the system is to transform raw GTFS feeds into structured data stored in a database and then detect differences between imported schedule versions.
 
-## Архітектура
+## Architecture
 
-Система побудована відповідно до принципів Clean Architecture. Бізнес-логіка відокремлена від інфраструктурного коду, а взаємодія між шарами виконується через протоколи та сервіси.
+The system follows the principles of Clean Architecture. Business logic is separated from infrastructure code, while interaction between layers is performed through protocols and services.
 
 ```text
 src/transit_advisor
@@ -22,23 +24,23 @@ src/transit_advisor
 └── tests
 ```
 
-## Документація
+## Documentation
 
-Додаткова документація проєкту доступна в каталозі `docs`.
+Additional project documentation is available in the `docs` directory.
 
-| Документ | Опис |
+| Document | Description |
 |-----------|-------------|
-| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | Архітектура системи та прийняті архітектурні рішення |
-| [docs/TESTING.md](docs/TESTING.md) | Стратегія тестування та структура тестів |
-| [docs/REQUIREMENTS_TRACEABILITY.md](docs/REQUIREMENTS_TRACEABILITY.md) | Відповідність вимог реалізації |
-| [docs/REFACTORING.md](docs/REFACTORING.md) | Опис архітектурних особливостей та шляхів рефакторингу |
-| [docs/diagrams/ER_DIAGRAM.md](docs/diagrams/ER_DIAGRAM.md) | ER-діаграма бази даних |
-| [docs/diagrams/FEED_PROCESSING.md](docs/diagrams/FEED_PROCESSING.md) | Процес імпорту GTFS-фідів |
-| [docs/diagrams/NOTIFICATION_WORKFLOW.md](docs/diagrams/NOTIFICATION_WORKFLOW.md) | Процес створення сповіщень |
+| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | System architecture and architectural decisions |
+| [docs/TESTING.md](docs/TESTING.md) | Testing strategy and test structure |
+| [docs/REQUIREMENTS_TRACEABILITY.md](docs/REQUIREMENTS_TRACEABILITY.md) | Requirements traceability matrix |
+| [docs/REFACTORING.md](docs/REFACTORING.md) | Architectural considerations and refactoring opportunities |
+| [docs/diagrams/ER_DIAGRAM.md](docs/diagrams/ER_DIAGRAM.md) | Database ER diagram |
+| [docs/diagrams/FEED_PROCESSING.md](docs/diagrams/FEED_PROCESSING.md) | GTFS feed import process |
+| [docs/diagrams/NOTIFICATION_WORKFLOW.md](docs/diagrams/NOTIFICATION_WORKFLOW.md) | Notification generation workflow |
 
 ### Domain Layer
 
-Містить доменні сутності та бізнес-правила:
+Contains domain entities and business rules:
 
 - Agency
 - Route
@@ -52,61 +54,61 @@ src/transit_advisor
 
 ### Service Layer
 
-Містить прикладні сервіси, що реалізують основні сценарії системи:
+Contains application services that implement the core system use cases:
 
-- імпорт GTFS-даних;
-- валідацію GTFS-архівів;
-- обчислення SHA-256 контрольних сум;
-- створення та керування версіями розкладів;
-- виявлення змін між версіями (`ScheduleDiffService`);
-- обробку підписок та сповіщень (`ScheduleUpdateService`);
-- пошук маршрутів та розклад за зупинкою.
+- GTFS data import;
+- GTFS archive validation;
+- SHA-256 checksum calculation;
+- schedule version creation and management;
+- schedule change detection (`ScheduleDiffService`);
+- subscription and notification processing (`ScheduleUpdateService`);
+- route search and stop departure schedules.
 
 ### Infrastructure Layer
 
-Містить реалізації репозиторіїв та моделі SQLAlchemy для роботи з PostgreSQL.
+Contains repository implementations and SQLAlchemy models for working with PostgreSQL.
 
 ---
 
-## Поточний стан проєкту
+## Current Project Status
 
-На даному етапі реалізовано повний цикл імпорту основних GTFS-сутностей.
+At the current stage, the complete import cycle for the core GTFS entities has been implemented.
 
-Система підтримує:
+The system currently supports:
 
-- імпорт agency.txt;
-- імпорт routes.txt;
-- імпорт stops.txt;
-- імпорт trips.txt (з прив'язкою до `schedule_version_id`);
-- імпорт stop_times.txt;
-- збереження даних у PostgreSQL;
-- версіонування імпортованих розкладів;
-- визначення дублікатів імпорту за SHA-256 checksum;
-- порівняння версій розкладу на рівні маршрутів та часу зупинок;
-- підписки користувачів на маршрути;
-- створення та збереження сповіщень;
-- API для імпорту GTFS-фідів;
-- API для керування підписками;
-- API для отримання сповіщень;
-- API для пошуку маршрутів;
-- API для отримання розкладу за зупинкою;
-- API для порівняння версій розкладу маршруту;
-- автоматичне створення сповіщень при виявленні змін.
+- importing `agency.txt`;
+- importing `routes.txt`;
+- importing `stops.txt`;
+- importing `trips.txt` (linked to `schedule_version_id`);
+- importing `stop_times.txt`;
+- storing data in PostgreSQL;
+- imported schedule versioning;
+- duplicate import detection using SHA-256 checksums;
+- schedule version comparison at the route and stop-time levels;
+- user subscriptions to routes;
+- notification generation and persistence;
+- API for GTFS feed import;
+- API for subscription management;
+- API for notification retrieval;
+- API for route search;
+- API for stop departure schedules;
+- API for route schedule version comparison;
+- automatic notification creation when changes are detected.
 
-Для кожного доменного об'єкта реалізовані:
+For each domain object, the following have been implemented:
 
-- доменна модель;
-- репозиторій;
-- інтеграційні тести;
-- unit-тести бізнес-логіки.
+- domain model;
+- repository;
+- integration tests;
+- unit tests for business logic.
 
-Проєкт використовує статичний аналіз типів через MyPy та автоматизоване тестування через Pytest.
+The project uses static type analysis with MyPy and automated testing with Pytest.
 
 ---
 
 ## GTFS Processing Pipeline
 
-Поточний процес обробки даних виглядає таким чином:
+The current data processing workflow is as follows:
 
 ```text
 GTFS Archive
@@ -135,7 +137,7 @@ Notifications
 
 ## REST API
 
-Реалізовані такі API-ендпоїнти.
+The following API endpoints are implemented.
 
 ### Feed API
 
@@ -174,61 +176,61 @@ GET /notifications/users/{user_id}/unread
 
 ## Testing
 
-Проєкт містить три рівні тестування:
+The project contains three testing levels.
 
 ### Unit Tests
 
-Перевіряють:
+Verify:
 
-- доменні сутності;
-- бізнес-правила;
-- сервіси (`ScheduleDiffService`, `ScheduleUpdateService`);
-- GTFS-імпорт;
-- версіонування розкладів.
+- domain entities;
+- business rules;
+- services (`ScheduleDiffService`, `ScheduleUpdateService`);
+- GTFS import process;
+- schedule versioning.
 
 ### Integration Tests
 
-Перевіряють:
+Verify:
 
-- SQLAlchemy репозиторії (включаючи `search`, `find_departures`);
-- роботу з PostgreSQL;
-- коректність зв'язків між сутностями;
-- збереження та пошук даних;
-- відсутність забруднення БД між тестами (через SAVEPOINT).
+- SQLAlchemy repositories (including `search` and `find_departures`);
+- PostgreSQL integration;
+- correctness of entity relationships;
+- data persistence and retrieval;
+- database isolation between tests (via SAVEPOINT).
 
 ### API Tests
 
-Перевіряють:
+Verify:
 
 - Feed API;
-- Route API (пошук, порівняння версій);
-- Stop API (розклад за зупинкою);
+- Route API (search and version comparison);
+- Stop API (departure schedules);
 - Subscription API;
 - Notification API;
-- коректність HTTP-відповідей;
-- dependency injection.
+- correct HTTP responses;
+- dependency injection configuration.
 
 ## Logging
 
-На поточному етапі централізоване логування не реалізовано.
+At the current stage, centralized logging has not yet been implemented.
 
-Під час розробки та тестування використовуються:
+During development and testing, the project relies on:
 
-- винятки Python;
-- повідомлення SQLAlchemy;
-- повідомлення PostgreSQL;
-- повідомлення FastAPI;
-- звіти Pytest.
+- Python exceptions;
+- SQLAlchemy logs and messages;
+- PostgreSQL messages;
+- FastAPI logs and messages;
+- Pytest reports.
 
-У майбутніх версіях планується реалізація структурованого логування на базі стандартного модуля `logging` для моніторингу імпорту фідів, обробки помилок та аудиту операцій системи.
+Future versions are expected to introduce structured logging based on Python's standard `logging` module for monitoring feed imports, error handling, and system operation auditing.
 
-Запуск тестів:
+Run tests:
 
 ```bash
 pytest
 ```
 
-Перевірка типізації:
+Type checking:
 
 ```bash
 mypy src tests
@@ -236,7 +238,7 @@ mypy src tests
 
 ---
 
-## Використані технології
+## Technology Stack
 
 - Python 3.13
 - PostgreSQL
@@ -251,18 +253,12 @@ mypy src tests
 
 ---
 
-## Вектор подальшого розвитку
+## Future Development
 
-Поточна реалізація формує основу для сервісу моніторингу змін транспортних розкладів.
+The current implementation provides the foundation for a transit schedule change monitoring service.
 
-Подальший розвиток системи передбачає:
-
-- побудова варіантів проїзду між зупинками без пересадок;
-- аналітичні звіти (кількість рейсів за днями, інтервали руху, топ-зупинки);
-- email-повідомлення користувачам;
-- централізоване логування та моніторинг;
-- підтримку декількох транспортних операторів;
-- веб-інтерфейс для перегляду розкладів та історії змін.
+Futureiple transit operators;
+- a web interface for viewing schedules and change history.
 
 ---
 
@@ -270,9 +266,10 @@ mypy src tests
 
 Course project developed as part of the Python Programming course.
 
-**Author:** AlexandrPogrebnyuk
+**Author:** Alexandr Pogrebnyuk
 
-Jira:
-```bash
+### Jira
+
+```text
 https://nanilennauchpage.atlassian.net/jira/software/projects/TA
 ```

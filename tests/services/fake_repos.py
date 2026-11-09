@@ -81,36 +81,8 @@ class FakeRouteRepository:
 
         return results[offset : offset + limit]
 
-    def find_by_id(self, route_pk: int) -> Route | None:
-        return next((r for r in self.saved if r.id == route_pk), None)
-
-    def search(
-        self,
-        query: str | None = None,
-        stop_id: int | None = None,
-        offset: int = 0,
-        limit: int = 20,
-    ) -> list[Route]:
-        results = self.saved
-
-        if query:
-            pattern = query.lower()
-            results = [
-                route
-                for route in results
-                if pattern in route.route_id.lower()
-                or pattern in route.short_name.lower()
-                or pattern in route.long_name.lower()
-            ]
-
-        if stop_id is not None:
-            # У фейку немає зв'язку Trip/StopTime, тому цей фільтр
-            # не може бути реалістично перевірений без додаткових даних.
-            # Для юніт-тестів зазвичай повертаємо порожній список,
-            # якщо не передано спеціальний мапінг.
-            results = []
-
-        return results[offset : offset + limit]
+    def find_by_id(self, route_id: int) -> Route | None:
+        return next((r for r in self.saved if r.id == route_id), None)
 
 
 class FakeStopRepository:

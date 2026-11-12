@@ -66,7 +66,7 @@ def make_trip(
 
 
 def test_create_notification_for_added_route(
-    schedule_update_service: ScheduleUpdateService,
+    fake_schedule_update_service: ScheduleUpdateService,
     fake_notification_repository: FakeNotificationRepository,
     fake_subscription_repository: FakeSubscriptionRepository,
     fake_route_repository: FakeRouteRepository,
@@ -83,7 +83,7 @@ def test_create_notification_for_added_route(
     )
     assert subscription.id is not None
 
-    created = schedule_update_service.process_update(
+    created = fake_schedule_update_service.process_update(
         old_routes=[],
         new_routes=[route],
         schedule_version_id=1,
@@ -111,7 +111,7 @@ def test_create_notification_for_added_route(
 
 
 def test_no_notifications_when_no_changes(
-    schedule_update_service: ScheduleUpdateService,
+    fake_schedule_update_service: ScheduleUpdateService,
     fake_notification_repository: FakeNotificationRepository,
 ) -> None:
     route = Route(
@@ -123,7 +123,7 @@ def test_no_notifications_when_no_changes(
         route_type=3,
     )
 
-    created = schedule_update_service.process_update(
+    created = fake_schedule_update_service.process_update(
         old_routes=[route],
         new_routes=[route],
         schedule_version_id=1,
@@ -145,14 +145,14 @@ def test_no_notifications_when_no_changes(
 
 
 def test_no_notifications_without_subscribers(
-    schedule_update_service: ScheduleUpdateService,
+    fake_schedule_update_service: ScheduleUpdateService,
     fake_notification_repository: FakeNotificationRepository,
     fake_route_repository: FakeRouteRepository,
 ) -> None:
     route = make_route(fake_route_repository)
     assert route.id is not None
 
-    created = schedule_update_service.process_update(
+    created = fake_schedule_update_service.process_update(
         old_routes=[],
         new_routes=[route],
         schedule_version_id=1,
@@ -174,7 +174,7 @@ def test_no_notifications_without_subscribers(
 
 
 def test_no_notifications_for_unrelated_subscription(
-    schedule_update_service: ScheduleUpdateService,
+    fake_schedule_update_service: ScheduleUpdateService,
     fake_notification_repository: FakeNotificationRepository,
     fake_subscription_repository: FakeSubscriptionRepository,
     fake_route_repository: FakeRouteRepository,
@@ -188,7 +188,7 @@ def test_no_notifications_for_unrelated_subscription(
         Subscription(id=None, user_id=1, route_id=other_route.id)
     )
 
-    created = schedule_update_service.process_update(
+    created = fake_schedule_update_service.process_update(
         old_routes=[],
         new_routes=[changed_route],
         schedule_version_id=1,
@@ -210,13 +210,13 @@ def test_no_notifications_for_unrelated_subscription(
 
 
 def test_no_notifications_when_route_not_found(
-    schedule_update_service: ScheduleUpdateService,
+    fake_schedule_update_service: ScheduleUpdateService,
     fake_notification_repository: FakeNotificationRepository,
     fake_subscription_repository: FakeSubscriptionRepository,
 ) -> None:
     fake_subscription_repository.save(Subscription(id=None, user_id=1, route_id=1))
 
-    created = schedule_update_service.process_update(
+    created = fake_schedule_update_service.process_update(
         old_routes=[],
         new_routes=[
             Route(
@@ -247,7 +247,7 @@ def test_no_notifications_when_route_not_found(
 
 
 def test_notifications_for_all_subscribers_of_changed_route(
-    schedule_update_service: ScheduleUpdateService,
+    fake_schedule_update_service: ScheduleUpdateService,
     fake_notification_repository: FakeNotificationRepository,
     fake_subscription_repository: FakeSubscriptionRepository,
     fake_route_repository: FakeRouteRepository,
@@ -262,7 +262,7 @@ def test_notifications_for_all_subscribers_of_changed_route(
         Subscription(id=None, user_id=2, route_id=route.id)
     )
 
-    created = schedule_update_service.process_update(
+    created = fake_schedule_update_service.process_update(
         old_routes=[],
         new_routes=[route],
         schedule_version_id=1,
@@ -285,7 +285,7 @@ def test_notifications_for_all_subscribers_of_changed_route(
 
 
 def test_notifications_for_multiple_changed_routes(
-    schedule_update_service: ScheduleUpdateService,
+    fake_schedule_update_service: ScheduleUpdateService,
     fake_notification_repository: FakeNotificationRepository,
     fake_subscription_repository: FakeSubscriptionRepository,
     fake_route_repository: FakeRouteRepository,
@@ -302,7 +302,7 @@ def test_notifications_for_multiple_changed_routes(
         Subscription(id=None, user_id=2, route_id=route_16.id)
     )
 
-    created = schedule_update_service.process_update(
+    created = fake_schedule_update_service.process_update(
         old_routes=[],
         new_routes=[route_15, route_16],
         schedule_version_id=1,
@@ -332,7 +332,7 @@ def test_notifications_for_multiple_changed_routes(
 
 
 def test_process_update_ignores_removed_routes(
-    schedule_update_service: ScheduleUpdateService,
+    fake_schedule_update_service: ScheduleUpdateService,
     fake_notification_repository: FakeNotificationRepository,
     fake_subscription_repository: FakeSubscriptionRepository,
     fake_route_repository: FakeRouteRepository,
@@ -344,7 +344,7 @@ def test_process_update_ignores_removed_routes(
         Subscription(id=None, user_id=1, route_id=removed_route.id)
     )
 
-    created = schedule_update_service.process_update(
+    created = fake_schedule_update_service.process_update(
         old_routes=[removed_route],
         new_routes=[],
         schedule_version_id=1,
@@ -355,7 +355,7 @@ def test_process_update_ignores_removed_routes(
 
 
 def test_process_version_update_creates_notification_for_changed_stop_time(
-    schedule_update_service: ScheduleUpdateService,
+    fake_schedule_update_service: ScheduleUpdateService,
     fake_notification_repository: FakeNotificationRepository,
     fake_subscription_repository: FakeSubscriptionRepository,
     fake_route_repository: FakeRouteRepository,
@@ -400,7 +400,7 @@ def test_process_version_update_creates_notification_for_changed_stop_time(
         )
     )
 
-    created = schedule_update_service.process_version_update(
+    created = fake_schedule_update_service.process_version_update(
         old_version_id=1,
         new_version_id=2,
         schedule_version_id=2,
@@ -414,7 +414,7 @@ def test_process_version_update_creates_notification_for_changed_stop_time(
 
 
 def test_process_version_update_no_notifications_when_no_changes(
-    schedule_update_service: ScheduleUpdateService,
+    fake_schedule_update_service: ScheduleUpdateService,
     fake_notification_repository: FakeNotificationRepository,
     fake_subscription_repository: FakeSubscriptionRepository,
     fake_route_repository: FakeRouteRepository,
@@ -458,7 +458,7 @@ def test_process_version_update_no_notifications_when_no_changes(
         )
     )
 
-    created = schedule_update_service.process_version_update(
+    created = fake_schedule_update_service.process_version_update(
         old_version_id=1,
         new_version_id=2,
         schedule_version_id=2,
@@ -469,7 +469,7 @@ def test_process_version_update_no_notifications_when_no_changes(
 
 
 def test_process_version_update_no_notifications_without_subscribers(
-    schedule_update_service: ScheduleUpdateService,
+    fake_schedule_update_service: ScheduleUpdateService,
     fake_notification_repository: FakeNotificationRepository,
     fake_route_repository: FakeRouteRepository,
     fake_trip_repository: FakeTripRepository,
@@ -508,7 +508,7 @@ def test_process_version_update_no_notifications_without_subscribers(
         )
     )
 
-    created = schedule_update_service.process_version_update(
+    created = fake_schedule_update_service.process_version_update(
         old_version_id=1,
         new_version_id=2,
         schedule_version_id=2,
@@ -519,7 +519,7 @@ def test_process_version_update_no_notifications_without_subscribers(
 
 
 def test_process_version_update_detects_added_route(
-    schedule_update_service: ScheduleUpdateService,
+    fake_schedule_update_service: ScheduleUpdateService,
     fake_notification_repository: FakeNotificationRepository,
     fake_subscription_repository: FakeSubscriptionRepository,
     fake_route_repository: FakeRouteRepository,
@@ -553,7 +553,7 @@ def test_process_version_update_detects_added_route(
         trip_id="trip_16",
     )
 
-    created = schedule_update_service.process_version_update(
+    created = fake_schedule_update_service.process_version_update(
         old_version_id=1,
         new_version_id=2,
         schedule_version_id=2,
@@ -564,7 +564,7 @@ def test_process_version_update_detects_added_route(
 
 
 def test_process_version_update_no_notification_for_removed_route(
-    schedule_update_service: ScheduleUpdateService,
+    fake_schedule_update_service: ScheduleUpdateService,
     fake_notification_repository: FakeNotificationRepository,
     fake_subscription_repository: FakeSubscriptionRepository,
     fake_route_repository: FakeRouteRepository,
@@ -590,7 +590,7 @@ def test_process_version_update_no_notification_for_removed_route(
         trip_id="trip_1",
     )
 
-    created = schedule_update_service.process_version_update(
+    created = fake_schedule_update_service.process_version_update(
         old_version_id=1,
         new_version_id=2,
         schedule_version_id=2,
@@ -601,7 +601,7 @@ def test_process_version_update_no_notification_for_removed_route(
 
 
 def test_process_version_update_notifies_all_subscribers_of_changed_route(
-    schedule_update_service: ScheduleUpdateService,
+    fake_schedule_update_service: ScheduleUpdateService,
     fake_notification_repository: FakeNotificationRepository,
     fake_subscription_repository: FakeSubscriptionRepository,
     fake_route_repository: FakeRouteRepository,
@@ -648,7 +648,7 @@ def test_process_version_update_notifies_all_subscribers_of_changed_route(
         )
     )
 
-    created = schedule_update_service.process_version_update(
+    created = fake_schedule_update_service.process_version_update(
         old_version_id=1,
         new_version_id=2,
         schedule_version_id=2,
@@ -660,7 +660,7 @@ def test_process_version_update_notifies_all_subscribers_of_changed_route(
 
 
 def test_process_version_update_does_not_notify_unrelated_route(
-    schedule_update_service: ScheduleUpdateService,
+    fake_schedule_update_service: ScheduleUpdateService,
     fake_notification_repository: FakeNotificationRepository,
     fake_subscription_repository: FakeSubscriptionRepository,
     fake_route_repository: FakeRouteRepository,
@@ -706,7 +706,7 @@ def test_process_version_update_does_not_notify_unrelated_route(
         )
     )
 
-    created = schedule_update_service.process_version_update(
+    created = fake_schedule_update_service.process_version_update(
         old_version_id=1,
         new_version_id=2,
         schedule_version_id=2,
@@ -717,7 +717,7 @@ def test_process_version_update_does_not_notify_unrelated_route(
 
 
 def test_process_version_update_detects_added_stop(
-    schedule_update_service: ScheduleUpdateService,
+    fake_schedule_update_service: ScheduleUpdateService,
     fake_notification_repository: FakeNotificationRepository,
     fake_subscription_repository: FakeSubscriptionRepository,
     fake_route_repository: FakeRouteRepository,
@@ -772,7 +772,7 @@ def test_process_version_update_detects_added_stop(
         )
     )
 
-    created = schedule_update_service.process_version_update(
+    created = fake_schedule_update_service.process_version_update(
         old_version_id=1,
         new_version_id=2,
         schedule_version_id=2,
@@ -783,7 +783,7 @@ def test_process_version_update_detects_added_stop(
 
 
 def test_process_version_update_detects_multiple_changed_stops(
-    schedule_update_service: ScheduleUpdateService,
+    fake_schedule_update_service: ScheduleUpdateService,
     fake_notification_repository: FakeNotificationRepository,
     fake_subscription_repository: FakeSubscriptionRepository,
     fake_route_repository: FakeRouteRepository,
@@ -847,7 +847,7 @@ def test_process_version_update_detects_multiple_changed_stops(
         )
     )
 
-    created = schedule_update_service.process_version_update(
+    created = fake_schedule_update_service.process_version_update(
         old_version_id=1,
         new_version_id=2,
         schedule_version_id=2,
@@ -861,7 +861,7 @@ def test_process_version_update_detects_multiple_changed_stops(
 
 
 def test_process_version_update_same_version_produces_no_notifications(
-    schedule_update_service: ScheduleUpdateService,
+    fake_schedule_update_service: ScheduleUpdateService,
     fake_notification_repository: FakeNotificationRepository,
     fake_subscription_repository: FakeSubscriptionRepository,
     fake_route_repository: FakeRouteRepository,
@@ -891,7 +891,7 @@ def test_process_version_update_same_version_produces_no_notifications(
         )
     )
 
-    created = schedule_update_service.process_version_update(
+    created = fake_schedule_update_service.process_version_update(
         old_version_id=1,
         new_version_id=1,
         schedule_version_id=1,
@@ -902,7 +902,7 @@ def test_process_version_update_same_version_produces_no_notifications(
 
 
 def test_process_version_update_with_empty_versions(
-    schedule_update_service: ScheduleUpdateService,
+    fake_schedule_update_service: ScheduleUpdateService,
     fake_notification_repository: FakeNotificationRepository,
     fake_subscription_repository: FakeSubscriptionRepository,
     fake_route_repository: FakeRouteRepository,
@@ -914,7 +914,7 @@ def test_process_version_update_with_empty_versions(
         Subscription(id=None, user_id=1, route_id=route.id)
     )
 
-    created = schedule_update_service.process_version_update(
+    created = fake_schedule_update_service.process_version_update(
         old_version_id=1,
         new_version_id=2,
         schedule_version_id=2,

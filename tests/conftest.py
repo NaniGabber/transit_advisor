@@ -24,6 +24,7 @@ from transit_advisor.api.analytics import router as analytics_router
 from transit_advisor.api.dependencies import (
     get_feed_upload_service,
     get_notification_repository,
+    get_schedule_update_service,
     get_session,
 )
 from transit_advisor.api.feeds import router as feeds_router
@@ -184,6 +185,7 @@ def trip_factory(
                 route_id=route_id,
                 trip_id=trip_id,
                 schedule_version_id=schedule_version.id,
+                service_id="WEEKDAY",
             )
         )
 
@@ -226,6 +228,7 @@ def feed_upload_service(
 def app(
     session: Session,
     feed_upload_service: FeedUploadService,
+    schedule_update_service: ScheduleUpdateService,
 ) -> Generator[FastAPI, None, None]:
     app = FastAPI()
     app.include_router(feeds_router)
@@ -237,7 +240,9 @@ def app(
 
     app.dependency_overrides[get_feed_upload_service] = lambda: feed_upload_service
     app.dependency_overrides[get_session] = lambda: session
-
+    app.dependency_overrides[get_schedule_update_service] = (
+        lambda: schedule_update_service
+    )
     yield app
     app.dependency_overrides.clear()
 
@@ -434,7 +439,7 @@ def notification_service(
 
 
 @pytest.fixture
-def schedule_update_service(
+def fake_schedule_update_service(
     notification_service: NotificationService,
     fake_subscription_repository: FakeSubscriptionRepository,
     fake_route_repository: FakeRouteRepository,
@@ -448,6 +453,22 @@ def schedule_update_service(
         route_repository=fake_route_repository,
         trip_repository=fake_trip_repository,
         stoptime_repository=fake_stoptime_repository,
+    )
+
+
+@pytest.fixture
+def schedule_update_service(
+    session: Session,
+) -> ScheduleUpdateService:
+    return ScheduleUpdateService(
+        diff_service=ScheduleDiffService(),
+        notification_service=NotificationService(
+            SqlAlchemyNotificationRepository(session),
+        ),
+        subscription_repository=SqlAlchemySubscriptionRepository(session),
+        route_repository=SqlAlchemyRouteRepository(session),
+        trip_repository=SqlAlchemyTripRepository(session),
+        stoptime_repository=SqlAlchemyStopTimeRepository(session),
     )
 
 

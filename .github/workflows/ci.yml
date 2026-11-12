@@ -58,6 +58,9 @@ jobs:
         run: |
           mypy src
 
+      - name: Check architecture
+        run: lint-imports
+
       - name: Run Tests
         run: |
           pytest --cov=src \

@@ -38,3 +38,11 @@ class StopTimeRepository(Protocol):
         offset: int = 0,
         limit: int = 20,
     ) -> list[StopTime]: ...
+
+    def find_direct_journeys(
+        self,
+        from_stop_id: int,
+        to_stop_id: int,
+        limit: int = 20,
+        offset: int = 0,
+    ) -> list[tuple[StopTime, StopTime]]: ...

@@ -180,6 +180,44 @@ class FakeStopTimeRepository:
 
         return results[offset : offset + limit]
 
+    def find_direct_journeys(
+        self,
+        from_stop_id: int,
+        to_stop_id: int,
+        limit: int = 20,
+        offset: int = 0,
+    ) -> list[tuple[StopTime, StopTime]]:
+        results: list[tuple[StopTime, StopTime]] = []
+
+        # Групуємо StopTime за trip_id
+        trips: dict[int, list[StopTime]] = {}
+        for st in self.saved:
+            trips.setdefault(st.trip_id, []).append(st)
+
+        for trip_stop_times in trips.values():
+            # Сортуємо за stop_sequence
+            trip_stop_times.sort(key=lambda st: st.stop_sequence)
+
+            from_st = next(
+                (st for st in trip_stop_times if st.stop_id == from_stop_id),
+                None,
+            )
+            to_st = next(
+                (st for st in trip_stop_times if st.stop_id == to_stop_id),
+                None,
+            )
+
+            if from_st is None or to_st is None:
+                continue
+
+            if from_st.stop_sequence >= to_st.stop_sequence:
+                continue
+
+            results.append((from_st, to_st))
+
+        results.sort(key=lambda pair: pair[0].departure_time)
+        return results[offset : offset + limit]
+
 
 class FakeScheduleVersionRepository:
     def __init__(self) -> None:

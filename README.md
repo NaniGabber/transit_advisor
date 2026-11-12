@@ -21,6 +21,8 @@ src/transit_advisor
 └── tests
 ```
 
+The architecture boundaries are enforced automatically using `import-linter` (see `pyproject.toml`).
+
 ## Documentation
 
 Additional project documentation is available in the `docs` directory.
@@ -54,13 +56,14 @@ Contains domain entities and business rules:
 
 Contains application services that implement the core system use cases:
 
-- GTFS data import;
+- GTFS data import (with rejected-row tracking);
 - GTFS archive validation;
 - SHA-256 checksum calculation;
 - schedule version creation and management;
 - schedule change detection (`ScheduleDiffService`);
 - subscription and notification processing (`ScheduleUpdateService`);
-- route search and stop departure schedules.
+- direct journey planning (`JourneyService`);
+- route search, stop departure schedules, and analytics (`AnalyticsService`).
 
 ### Infrastructure Layer
 
@@ -77,21 +80,23 @@ The system currently supports:
 - importing `agency.txt`;
 - importing `routes.txt`;
 - importing `stops.txt`;
-- importing `trips.txt` (linked to `schedule_version_id`);
+- importing `trips.txt` (linked to `schedule_version_id` and `service_id`);
 - importing `stop_times.txt`;
 - storing data in PostgreSQL;
 - imported schedule versioning;
 - duplicate import detection using SHA-256 checksums;
+- rejected-row tracking during import (`ImportStats`);
 - schedule version comparison at the route and stop-time levels;
 - user subscriptions to routes;
 - notification generation and persistence;
-- API for GTFS feed import;
-- API for subscription management;
-- API for notification retrieval;
-- API for route search;
-- API for stop departure schedules;
-- API for route schedule version comparison;
-- automatic notification creation when changes are detected.
+- direct journey planning between stops (no transfers);
+- route search by number or stop;
+- stop departure schedules;
+- route schedule version comparison;
+- analytics (trips by day, average headway, top stops);
+- automatic notification creation when changes are detected;
+- role-based access control (guest / user / admin);
+- transaction management for feed import.
 
 For each domain object, the following have been implemented:
 
@@ -143,6 +148,8 @@ The following API endpoints are implemented.
 POST /feeds
 ```
 
+Requires `X-Role: admin`. Returns `ImportStats` for each GTFS file.
+
 ### Route API
 
 ```http
@@ -156,6 +163,22 @@ GET /routes/{id}/diff?from_version=&to_version=
 GET /stops/{id}/departures?from=&page=&page_size=
 ```
 
+### Journey API
+
+```http
+GET /journeys?from_stop=&to_stop=&page=&page_size=
+```
+
+Finds direct journeys (no transfers) between two stops.
+
+### Analytics API
+
+```http
+GET /analytics/routes/{id}/trips-by-day
+GET /analytics/routes/{id}/headway
+GET /analytics/stops/top?limit=
+```
+
 ### Subscription API
 
 ```http
@@ -163,12 +186,22 @@ POST /subscriptions
 GET  /subscriptions/users/{user_id}
 ```
 
+Requires `X-Role: user` or `X-Role: admin`.
+
 ### Notification API
 
 ```http
 GET /notifications/users/{user_id}
 GET /notifications/users/{user_id}/unread
 ```
+
+### Authentication & Roles
+
+The API uses a simple `X-Role` header (for course project purposes):
+
+- `guest` (default) — read-only access.
+- `user` — can create subscriptions and view notifications.
+- `admin` — can upload GTFS feeds.
 
 ---
 
@@ -182,15 +215,15 @@ Verify:
 
 - domain entities;
 - business rules;
-- services (`ScheduleDiffService`, `ScheduleUpdateService`);
-- GTFS import process;
+- services (`ScheduleDiffService`, `ScheduleUpdateService`, `JourneyService`);
+- GTFS import process (including `ImportStats`);
 - schedule versioning.
 
 ### Integration Tests
 
 Verify:
 
-- SQLAlchemy repositories (including `search` and `find_departures`);
+- SQLAlchemy repositories (including `search`, `find_departures`, `find_direct_journeys`);
 - PostgreSQL integration;
 - correctness of entity relationships;
 - data persistence and retrieval;
@@ -203,8 +236,11 @@ Verify:
 - Feed API;
 - Route API (search and version comparison);
 - Stop API (departure schedules);
+- Journey API;
+- Analytics API;
 - Subscription API;
 - Notification API;
+- role-based access control;
 - correct HTTP responses;
 - dependency injection configuration.
 
@@ -234,6 +270,12 @@ Type checking:
 mypy src tests
 ```
 
+Architecture checks:
+
+```bash
+lint-imports
+```
+
 ---
 
 ## Technology Stack
@@ -247,6 +289,7 @@ mypy src tests
 - Pytest
 - MyPy
 - Ruff
+- import-linter
 - Docker
 
 ---
@@ -255,10 +298,13 @@ mypy src tests
 
 The current implementation provides the foundation for a transit schedule change monitoring service.
 
-Futureiple transit operators;
-- a web interface for viewing schedules and change history.
+Future development may include:
 
----
+- email notifications for users;
+- structured logging and monitoring;
+- support for multiple transit operators;
+- a web interface for viewing schedules and change history;
+- advanced analytics (peak-hour intervals, route popularity).
 
 ## Author
 

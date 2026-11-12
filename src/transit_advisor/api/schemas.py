@@ -81,3 +81,13 @@ class DepartureResponse(BaseModel):
     arrival_time: str = Field(..., description="Arrival time (HH:MM:SS).")
     departure_time: str = Field(..., description="Departure time (HH:MM:SS).")
     stop_sequence: int = Field(..., description="Sequence of the stop in the trip.")
+
+
+class JourneyResponse(BaseModel):
+    trip_id: int
+    from_stop_id: int
+    to_stop_id: int
+    departure_time: str
+    arrival_time: str
+    stop_sequence_start: int
+    stop_sequence_end: int

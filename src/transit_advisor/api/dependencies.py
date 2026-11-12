@@ -148,7 +148,7 @@ def get_schedule_version_service(
 
 
 def get_schedule_update_service(
-    session: Session = Depends(get_session),
+    session: Annotated[Session, Depends(get_session)],
 ) -> ScheduleUpdateService:
     return ScheduleUpdateService(
         diff_service=ScheduleDiffService(),

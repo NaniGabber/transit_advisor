@@ -11,6 +11,7 @@ from transit_advisor.domain.stop import Stop
 from transit_advisor.domain.stoptime import StopTime
 from transit_advisor.domain.subscription import Subscription
 from transit_advisor.domain.trip import Trip
+from transit_advisor.domain.upload_result import ImportStats
 from transit_advisor.infrastructure.archive.gtfs_archive_reader import GtfsArchiveReader
 from transit_advisor.services.checksum_service import ChecksumService
 from transit_advisor.services.feed_upload_service import FeedUploadService
@@ -275,10 +276,16 @@ class FakeGtfsImportService(GtfsImportService):
         archive_path: Path,
         reader: GtfsArchiveReader,
         schedule_version_id: int,
-    ) -> dict[str, int]:
+    ) -> dict[str, ImportStats]:
         self.imported_count += 1
         self.last_schedule_version_id = schedule_version_id
-        return {"agencies": 1, "routes": 1, "stops": 1, "trips": 1, "stop_times": 1}
+        return {
+            "agencies": ImportStats(imported=1, rejected=0),
+            "routes": ImportStats(imported=1, rejected=0),
+            "stops": ImportStats(imported=1, rejected=0),
+            "trips": ImportStats(imported=1, rejected=0),
+            "stop_times": ImportStats(imported=1, rejected=0),
+        }
 
 
 class FakeContainer:

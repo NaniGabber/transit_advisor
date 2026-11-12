@@ -16,21 +16,12 @@ def _gtfs_zip() -> bytes:
     )
 
 
-def test_upload_imports_new_feed(
-    client: TestClient,
-    session: Session,
-) -> None:
+def test_upload_imports_new_feed(client: TestClient, session: Session) -> None:
     response = client.post(
         "/feeds",
-        files={
-            "file": (
-                "feed.zip",
-                _gtfs_zip(),
-                "application/zip",
-            ),
-        },
+        headers={"X-Role": "admin"},
+        files={"file": ("feed.zip", _gtfs_zip(), "application/zip")},
     )
-
     assert response.status_code == 201
 
     body = response.json()
@@ -46,6 +37,7 @@ def test_upload_duplicate_returns_409(
 ) -> None:
     client.post(
         "/feeds",
+        headers={"X-Role": "admin"},
         files={
             "file": (
                 "feed.zip",
@@ -57,6 +49,7 @@ def test_upload_duplicate_returns_409(
 
     response = client.post(
         "/feeds",
+        headers={"X-Role": "admin"},
         files={
             "file": (
                 "feed.zip",
@@ -76,6 +69,7 @@ def test_upload_invalid_feed_returns_422(
 ) -> None:
     response = client.post(
         "/feeds",
+        headers={"X-Role": "admin"},
         files={
             "file": (
                 "feed.zip",
@@ -99,6 +93,7 @@ def test_upload_non_zip_file_returns_422(
 ) -> None:
     response = client.post(
         "/feeds",
+        headers={"X-Role": "admin"},
         files={
             "file": (
                 "feed.zip",

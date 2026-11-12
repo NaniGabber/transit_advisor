@@ -7,20 +7,14 @@ from transit_advisor.infrastructure.repositories.subscription import (
 )
 
 
-def test_create_subscription(
-    client: TestClient,
-    route: Route,
-) -> None:
+def test_create_subscription(client: TestClient, route: Route) -> None:
     assert route.id is not None
 
     response = client.post(
         "/subscriptions",
-        json={
-            "user_id": 1,
-            "route_id": route.id,
-        },
+        headers={"X-Role": "user"},
+        json={"user_id": 1, "route_id": route.id},
     )
-
     assert response.status_code == 201
 
     data = response.json()
@@ -42,11 +36,13 @@ def test_duplicate_subscription_returns_409(
 
     first = client.post(
         "/subscriptions",
+        headers={"X-Role": "user"},
         json=payload,
     )
 
     second = client.post(
         "/subscriptions",
+        headers={"X-Role": "user"},
         json=payload,
     )
 
@@ -71,6 +67,7 @@ def test_get_user_subscriptions(
 
     response = client.get(
         "/subscriptions/users/1",
+        headers={"X-Role": "user"},
     )
 
     assert response.status_code == 200
@@ -98,6 +95,7 @@ def test_create_subscription_with_invalid_payload(
 ) -> None:
     response = client.post(
         "/subscriptions",
+        headers={"X-Role": "user"},
         json={
             "user_id": 1,
         },

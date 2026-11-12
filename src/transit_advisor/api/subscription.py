@@ -7,6 +7,7 @@ from fastapi import (
     status,
 )
 
+from transit_advisor.api.auth import Role, require_role
 from transit_advisor.api.dependencies import (
     get_subscription_repository,
     get_subscription_service,
@@ -32,10 +33,10 @@ router = APIRouter(
     "",
     response_model=SubscriptionResponse,
     status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(require_role(Role.USER, Role.ADMIN))],  # <-- ДОДАНО
     responses={
-        409: {
-            "description": ("Subscription already exists."),
-        },
+        403: {"description": "Only user or admin can subscribe."},
+        409: {"description": "Subscription already exists."},
     },
 )
 def create_subscription(

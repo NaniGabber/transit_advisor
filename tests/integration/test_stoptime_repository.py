@@ -1,6 +1,7 @@
 from collections.abc import Callable
 from datetime import time
 
+from transit_advisor.domain.route import Route
 from transit_advisor.domain.stop import Stop
 from transit_advisor.domain.stoptime import StopTime
 from transit_advisor.domain.trip import Trip
@@ -128,13 +129,15 @@ def test_find_by_trip_id_returns_empty_list_when_no_matches(
 def test_find_by_trip_id_returns_only_matching_trip(
     stoptime_repository: SqlAlchemyStopTimeRepository,
     trip: Trip,
-    trip_factory: Callable[[str], Trip],
+    route: Route,
+    trip_factory: Callable[[int, str], Trip],
     stop: Stop,
 ) -> None:
     assert trip.id is not None
     assert stop.id is not None
+    assert route.id is not None
 
-    other_trip = trip_factory("trip_2")
+    other_trip = trip_factory(route.id, "trip_2")
     assert other_trip.id is not None
 
     stoptime_repository.save(
@@ -218,13 +221,15 @@ def test_find_by_trip_ids_returns_empty_for_empty_list(
 def test_find_by_trip_ids_returns_stop_times_for_multiple_trips(
     stoptime_repository: SqlAlchemyStopTimeRepository,
     trip: Trip,
-    trip_factory: Callable[[str], Trip],
+    route: Route,  # <-- додайте
+    trip_factory: Callable[[int, str], Trip],
     stop: Stop,
 ) -> None:
     assert trip.id is not None
     assert stop.id is not None
+    assert route.id is not None
 
-    other_trip = trip_factory("trip_2")
+    other_trip = trip_factory(route.id, "trip_2")  # <-- передайте route_id
     assert other_trip.id is not None
 
     stoptime_repository.save(

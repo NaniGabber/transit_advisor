@@ -20,12 +20,14 @@ from tests.services.fake_repos import (
     FakeSubscriptionRepository,
     FakeTripRepository,
 )
+from transit_advisor.api.analytics import router as analytics_router
 from transit_advisor.api.dependencies import (
     get_feed_upload_service,
     get_notification_repository,
     get_session,
 )
 from transit_advisor.api.feeds import router as feeds_router
+from transit_advisor.api.journeys import router as journeys_router
 from transit_advisor.api.notification import router as notifications_router
 from transit_advisor.api.subscription import router as subscriptions_router
 from transit_advisor.domain.agency import Agency
@@ -35,9 +37,13 @@ from transit_advisor.domain.stop import Stop
 from transit_advisor.domain.subscription import Subscription
 from transit_advisor.domain.trip import Trip
 from transit_advisor.infrastructure.archive.gtfs_archive_reader import GtfsArchiveReader
+from transit_advisor.infrastructure.database import models  # noqa: F401
 from transit_advisor.infrastructure.database.base import Base
 from transit_advisor.infrastructure.repositories.agency import (
     SqlAlchemyAgencyRepository,
+)
+from transit_advisor.infrastructure.repositories.analytics import (
+    SqlAlchemyAnalyticsRepository,
 )
 from transit_advisor.infrastructure.repositories.notification import (
     SqlAlchemyNotificationRepository,
@@ -58,9 +64,11 @@ from transit_advisor.infrastructure.repositories.subscription import (
     SqlAlchemySubscriptionRepository,
 )
 from transit_advisor.infrastructure.repositories.trip import SqlAlchemyTripRepository
+from transit_advisor.services.analytics_service import AnalyticsService
 from transit_advisor.services.checksum_service import ChecksumService
 from transit_advisor.services.feed_upload_service import FeedUploadService
 from transit_advisor.services.feed_validation_service import FeedValidator
+from transit_advisor.services.journey_service import JourneyService
 from transit_advisor.services.notification_service import NotificationService
 from transit_advisor.services.schedule_diff_service import ScheduleDiffService
 from transit_advisor.services.schedule_update_service import ScheduleUpdateService
@@ -163,19 +171,16 @@ def trip(
 
 @pytest.fixture
 def trip_factory(
-    route: Route,
     schedule_version: ScheduleVersion,
     trip_repository: SqlAlchemyTripRepository,
-) -> Callable[[str], Trip]:
-    assert route.id is not None
+) -> Callable[[int, str], Trip]:
     assert schedule_version.id is not None
 
-    def create(trip_id: str) -> Trip:
-        assert route.id is not None
+    def create(route_id: int, trip_id: str) -> Trip:
         return trip_repository.save(
             Trip(
                 id=None,
-                route_id=route.id,
+                route_id=route_id,
                 trip_id=trip_id,
                 schedule_version_id=schedule_version.id,
             )
@@ -225,6 +230,8 @@ def app(
     app.include_router(feeds_router)
     app.include_router(subscriptions_router)
     app.include_router(notifications_router)
+    app.include_router(journeys_router)
+    app.include_router(analytics_router)
 
     app.dependency_overrides[get_feed_upload_service] = lambda: feed_upload_service
     app.dependency_overrides[get_session] = lambda: session
@@ -483,3 +490,24 @@ def schedule_version(
             imported_at=datetime.now(),
         )
     )
+
+
+@pytest.fixture
+def journey_service(
+    stoptime_repository: SqlAlchemyStopTimeRepository,
+) -> JourneyService:
+    return JourneyService(stoptime_repository)
+
+
+@pytest.fixture
+def analytics_repository(
+    session: Session,
+) -> SqlAlchemyAnalyticsRepository:
+    return SqlAlchemyAnalyticsRepository(session)
+
+
+@pytest.fixture
+def analytics_service(
+    analytics_repository: SqlAlchemyAnalyticsRepository,
+) -> AnalyticsService:
+    return AnalyticsService(analytics_repository)

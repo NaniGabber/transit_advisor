@@ -3,6 +3,11 @@ from datetime import datetime
 from pydantic import BaseModel, ConfigDict, Field
 
 
+class ImportStatsResponse(BaseModel):
+    imported: int
+    rejected: int
+
+
 class UploadFeedResponse(BaseModel):
     checksum: str = Field(..., description="SHA-256 checksum of the uploaded archive.")
     imported: bool = Field(
@@ -11,6 +16,7 @@ class UploadFeedResponse(BaseModel):
     duplicate: bool = Field(
         ..., description="True if a version with this checksum already existed."
     )
+    stats: dict[str, ImportStatsResponse]
 
 
 class NotificationResponse(BaseModel):

@@ -1,8 +1,10 @@
 from fastapi import FastAPI
 
+from transit_advisor.api.analytics import router as analytics_router
 from transit_advisor.api.feeds import (
     router as feeds_router,
 )
+from transit_advisor.api.journeys import router as journeys_router
 from transit_advisor.api.notification import (
     router as notifications_router,
 )
@@ -40,4 +42,10 @@ app.include_router(
 
 app.include_router(
     stops_router,
+)
+app.include_router(
+    journeys_router,
+)
+app.include_router(
+    analytics_router,
 )

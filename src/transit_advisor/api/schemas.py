@@ -91,3 +91,22 @@ class JourneyResponse(BaseModel):
     arrival_time: str
     stop_sequence_start: int
     stop_sequence_end: int
+
+
+class TripsByDayResponse(BaseModel):
+    route_id: int
+    trips_by_day: dict[str, int]
+
+
+class AverageHeadwayResponse(BaseModel):
+    route_id: int
+    average_headway_minutes: float | None
+
+
+class TopStopResponse(BaseModel):
+    stop_id: int
+    route_count: int
+
+
+class TopStopsResponse(BaseModel):
+    stops: list[TopStopResponse]

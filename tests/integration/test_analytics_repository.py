@@ -1,5 +1,7 @@
 from datetime import UTC, datetime
 
+from sqlalchemy.orm import Session
+
 from transit_advisor.domain.agency import Agency
 from transit_advisor.domain.route import Route
 from transit_advisor.domain.scheduleversion import ScheduleVersion
@@ -26,13 +28,13 @@ from transit_advisor.infrastructure.repositories.trip import (
 )
 
 
-def test_count_trips_by_day_returns_empty_when_no_versions(session) -> None:
+def test_count_trips_by_day_returns_empty_when_no_versions(session: Session) -> None:
     repo = SqlAlchemyAnalyticsRepository(session)
     assert repo.count_trips_by_day(1) == {}
 
 
 def test_count_trips_by_day_returns_counts(
-    session,
+    session: Session,
     agency: Agency,
     route_repository: SqlAlchemyRouteRepository,
     schedule_version_repository: SqlAlchemyScheduleVersionRepository,
@@ -96,7 +98,7 @@ def test_count_trips_by_day_returns_counts(
 
 
 def test_average_headway_returns_none_for_single_trip(
-    session,
+    session: Session,
     agency: Agency,
     route_repository: SqlAlchemyRouteRepository,
     schedule_version_repository: SqlAlchemyScheduleVersionRepository,
@@ -165,7 +167,7 @@ def test_average_headway_returns_none_for_single_trip(
 
 
 def test_average_headway_returns_average(
-    session,
+    session: Session,
     agency: Agency,
     route_repository: SqlAlchemyRouteRepository,
     schedule_version_repository: SqlAlchemyScheduleVersionRepository,
@@ -236,7 +238,7 @@ def test_average_headway_returns_average(
 
 
 def test_top_stops_returns_ranking(
-    session,
+    session: Session,
     agency: Agency,
     route_repository: SqlAlchemyRouteRepository,
     schedule_version_repository: SqlAlchemyScheduleVersionRepository,

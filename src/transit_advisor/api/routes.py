@@ -43,9 +43,6 @@ def get_route_diff(
     )
 
 
-router = APIRouter(prefix="/routes", tags=["routes"])
-
-
 @router.get(
     "",
     response_model=list[RouteResponse],

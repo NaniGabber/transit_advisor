@@ -10,6 +10,7 @@ class Trip:
 
     headsign: str | None = None
     schedule_version_id: int | None = None
+    service_id: str = ""
 
     def __post_init__(self) -> None:
         if self.route_id <= 0:

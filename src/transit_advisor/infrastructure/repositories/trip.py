@@ -18,19 +18,14 @@ class SqlAlchemyTripRepository:
             route_id=trip.route_id,
             headsign=trip.headsign,
             schedule_version_id=trip.schedule_version_id,
+            service_id=trip.service_id,
         )
 
         self._session.add(trip_model)
         self._session.flush()
         self._session.refresh(trip_model)
 
-        return Trip(
-            id=trip_model.id,
-            trip_id=trip_model.trip_id,
-            route_id=trip_model.route_id,
-            headsign=trip_model.headsign,
-            schedule_version_id=trip_model.schedule_version_id,
-        )
+        return self._to_domain(trip_model)
 
     def find_by_trip_id(self, trip_id: str) -> Trip | None:
         statement = select(TripModel).where(
@@ -60,4 +55,5 @@ class SqlAlchemyTripRepository:
             route_id=model.route_id,
             headsign=model.headsign,
             schedule_version_id=model.schedule_version_id,
+            service_id=model.service_id,
         )

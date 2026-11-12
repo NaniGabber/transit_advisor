@@ -16,6 +16,7 @@ def to_trip(
             trip_id=normalize(
                 row.get("trip_id") or "",
             ),
+            service_id=normalize(row.get("service_id") or "").strip(),
             schedule_version_id=schedule_version_id,
             headsign=normalize(
                 row.get("trip_headsign") or "",

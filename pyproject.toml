@@ -39,6 +39,7 @@ dev = [
     "black>=24.0.0",
     "mypy>=2.4.0",
     "pytest-json-report",
+    "import-linter",
 
 ]
 
@@ -146,3 +147,52 @@ exclude_lines = [
     "if TYPE_CHECKING:",
     "raise NotImplementedError",
 ]
+
+[tool.importlinter]
+root_package = "transit_advisor"
+include_external_packages = true
+
+# --- Контракт 1: Шари Clean Architecture ---
+# Напрямок: api -> services -> domain <- infrastructure
+# (infrastructure може залежати від domain, але не навпаки)
+[[tool.importlinter.contracts]]
+name = "Clean architecture layers"
+type = "layers"
+layers = [
+    "transit_advisor.api",
+    "transit_advisor.services",
+    "transit_advisor.domain",
+]
+# infrastructure не входить у цей ланцюжок, бо вона реалізує інтерфейси domain,
+# тому її залежність від domain — це нормально (інверсія залежностей).
+
+# --- Контракт 2: Domain не залежить від Infrastructure ---
+[[tool.importlinter.contracts]]
+name = "Domain must not import infrastructure"
+type = "forbidden"
+source_modules = ["transit_advisor.domain"]
+forbidden_modules = ["transit_advisor.infrastructure"]
+
+# --- Контракт 3: Domain не залежить від API та Services ---
+[[tool.importlinter.contracts]]
+name = "Domain must not import api or services"
+type = "forbidden"
+source_modules = ["transit_advisor.domain"]
+forbidden_modules = [
+    "transit_advisor.api",
+    "transit_advisor.services",
+]
+
+# --- Контракт 4: Infrastructure не залежить від API ---
+[[tool.importlinter.contracts]]
+name = "Infrastructure must not import api"
+type = "forbidden"
+source_modules = ["transit_advisor.infrastructure"]
+forbidden_modules = ["transit_advisor.api"]
+
+# --- Контракт 5: Сервіси не залежать від API ---
+[[tool.importlinter.contracts]]
+name = "Services must not import api"
+type = "forbidden"
+source_modules = ["transit_advisor.services"]
+forbidden_modules = ["transit_advisor.api"]

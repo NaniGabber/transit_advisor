@@ -21,3 +21,5 @@ class TripModel(Base):
         nullable=True,
     )
     headsign: Mapped[str | None]
+
+    service_id: Mapped[str] = mapped_column(String(100))

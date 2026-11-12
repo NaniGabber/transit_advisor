@@ -17,9 +17,10 @@ def test_import_agencies_returns_imported_count() -> None:
         }
     ]
 
-    imported = container.service.import_agencies(iter(rows))
+    stats = container.service.import_agencies(iter(rows))
 
-    assert imported == 1
+    assert stats.imported == 1
+    assert stats.rejected == 0
 
 
 def test_import_agencies_saves_valid_agencies() -> None:
@@ -51,9 +52,10 @@ def test_import_agencies_skips_invalid_rows() -> None:
         }
     ]
 
-    imported = container.service.import_agencies(iter(rows))
+    stats = container.service.import_agencies(iter(rows))
 
-    assert imported == 0
+    assert stats.imported == 0
+    assert stats.rejected == 1
     assert len(container.agency_repository.saved) == 0
 
 
@@ -82,9 +84,10 @@ def test_import_routes_returns_imported_count() -> None:
         }
     ]
 
-    imported = service.import_routes(iter(rows))
+    stats = service.import_routes(iter(rows))
 
-    assert imported == 1
+    assert stats.imported == 1
+    assert stats.rejected == 0
 
 
 def test_import_routes_saves_valid_route() -> None:
@@ -122,9 +125,10 @@ def test_import_routes_skips_unknown_agency() -> None:
         }
     ]
 
-    imported = container.service.import_routes(iter(rows))
+    stats = container.service.import_routes(iter(rows))
 
-    assert imported == 0
+    assert stats.imported == 0
+    assert stats.rejected == 1
     assert len(container.route_repository.saved) == 0
 
 
@@ -144,9 +148,10 @@ def test_import_routes_skips_invalid_route() -> None:
         }
     ]
 
-    imported = container.service.import_routes(iter(rows))
+    stats = container.service.import_routes(iter(rows))
 
-    assert imported == 0
+    assert stats.imported == 0
+    assert stats.rejected == 1
     assert len(container.route_repository.saved) == 0
 
 
@@ -180,9 +185,10 @@ def test_import_routes_imports_only_valid_routes() -> None:
         },
     ]
 
-    imported = container.service.import_routes(iter(rows))
+    stats = container.service.import_routes(iter(rows))
 
-    assert imported == 1
+    assert stats.imported == 1
+    assert stats.rejected == 2
     assert len(container.route_repository.saved) == 1
 
 
@@ -197,9 +203,10 @@ def test_import_stops_returns_imported_count() -> None:
         }
     ]
 
-    imported = container.service.import_stops(iter(rows))
+    stats = container.service.import_stops(iter(rows))
 
-    assert imported == 1
+    assert stats.imported == 1
+    assert stats.rejected == 0
 
 
 def test_import_stops_saves_valid_stop() -> None:
@@ -239,9 +246,10 @@ def test_import_stops_skips_invalid_row_missing_id() -> None:
         }
     ]
 
-    imported = container.service.import_stops(iter(rows))
+    stats = container.service.import_stops(iter(rows))
 
-    assert imported == 0
+    assert stats.imported == 0
+    assert stats.rejected == 1
     assert len(container.stop_repository.saved) == 0
 
 
@@ -256,9 +264,10 @@ def test_import_stops_skips_invalid_row_missing_coordinates() -> None:
         }
     ]
 
-    imported = container.service.import_stops(iter(rows))
+    stats = container.service.import_stops(iter(rows))
 
-    assert imported == 0
+    assert stats.imported == 0
+    assert stats.rejected == 1
     assert len(container.stop_repository.saved) == 0
 
 
@@ -285,9 +294,10 @@ def test_import_stops_imports_only_valid_stops() -> None:
         },
     ]
 
-    imported = container.service.import_stops(iter(rows))
+    stats = container.service.import_stops(iter(rows))
 
-    assert imported == 2
+    assert stats.imported == 2
+    assert stats.rejected == 1
     assert len(container.stop_repository.saved) == 2
     assert container.stop_repository.saved[0].stop_id == "S1"
     assert container.stop_repository.saved[1].stop_id == "S3"
@@ -325,9 +335,10 @@ def test_import_trips_returns_imported_count() -> None:
         }
     ]
 
-    imported = container.service.import_trips(iter(rows), schedule_version_id=1)
+    stats = container.service.import_trips(iter(rows), schedule_version_id=1)
 
-    assert imported == 1
+    assert stats.imported == 1
+    assert stats.rejected == 0
 
 
 def test_import_trips_saves_valid_trip() -> None:
@@ -377,9 +388,10 @@ def test_import_trips_sets_schedule_version_id() -> None:
         {"route_id": "11", "trip_id": "T2", "trip_headsign": "Suburbs"},
     ]
 
-    imported = container.service.import_trips(iter(rows), schedule_version_id=7)
+    stats = container.service.import_trips(iter(rows), schedule_version_id=7)
 
-    assert imported == 2
+    assert stats.imported == 2
+    assert stats.rejected == 0
     saved = container.trip_repository.saved
     assert len(saved) == 2
     assert all(trip.schedule_version_id == 7 for trip in saved)
@@ -397,9 +409,10 @@ def test_import_trips_skips_unknown_route() -> None:
         }
     ]
 
-    imported = container.service.import_trips(iter(rows), schedule_version_id=1)
+    stats = container.service.import_trips(iter(rows), schedule_version_id=1)
 
-    assert imported == 0
+    assert stats.imported == 0
+    assert stats.rejected == 1
 
 
 def test_import_trips_skips_invalid_trip() -> None:
@@ -428,9 +441,10 @@ def test_import_trips_skips_invalid_trip() -> None:
         }
     ]
 
-    imported = container.service.import_trips(iter(rows), schedule_version_id=1)
+    stats = container.service.import_trips(iter(rows), schedule_version_id=1)
 
-    assert imported == 0
+    assert stats.imported == 0
+    assert stats.rejected == 1
     assert len(container.trip_repository.saved) == 0
 
 
@@ -443,9 +457,10 @@ def test_import_trips_imports_only_valid_trips() -> None:
         {"route_id": "11", "trip_id": "", "trip_headsign": "Invalid"},
     ]
 
-    imported = container.service.import_trips(iter(rows), schedule_version_id=1)
+    stats = container.service.import_trips(iter(rows), schedule_version_id=1)
 
-    assert imported == 1
+    assert stats.imported == 1
+    assert stats.rejected == 2
     assert len(container.trip_repository.saved) == 1
     assert container.trip_repository.saved[0].trip_id == "T1"
 
@@ -512,9 +527,10 @@ def test_import_stop_times_returns_imported_count() -> None:
         }
     ]
 
-    imported = container.service.import_stoptimes(iter(rows))
+    stats = container.service.import_stoptimes(iter(rows))
 
-    assert imported == 1
+    assert stats.imported == 1
+    assert stats.rejected == 0
 
 
 def test_import_stop_times_saves_valid_stop_time() -> None:
@@ -548,9 +564,10 @@ def test_import_stop_times_skips_unknown_trip() -> None:
         }
     ]
 
-    imported = container.service.import_stoptimes(iter(rows))
+    stats = container.service.import_stoptimes(iter(rows))
 
-    assert imported == 0
+    assert stats.imported == 0
+    assert stats.rejected == 1
     assert len(container.stoptime_repository.saved) == 0
 
 
@@ -567,9 +584,10 @@ def test_import_stop_times_skips_unknown_stop() -> None:
         }
     ]
 
-    imported = container.service.import_stoptimes(iter(rows))
+    stats = container.service.import_stoptimes(iter(rows))
 
-    assert imported == 0
+    assert stats.imported == 0
+    assert stats.rejected == 1
     assert len(container.stoptime_repository.saved) == 0
 
 
@@ -586,7 +604,8 @@ def test_import_stop_times_skips_invalid_row() -> None:
         }
     ]
 
-    imported = container.service.import_stoptimes(iter(rows))
+    stats = container.service.import_stoptimes(iter(rows))
 
-    assert imported == 0
+    assert stats.imported == 0
+    assert stats.rejected == 1
     assert len(container.stoptime_repository.saved) == 0

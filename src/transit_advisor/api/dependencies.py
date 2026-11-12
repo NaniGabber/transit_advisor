@@ -9,6 +9,9 @@ from transit_advisor.infrastructure.database.base import engine
 from transit_advisor.infrastructure.repositories.agency import (
     SqlAlchemyAgencyRepository,
 )
+from transit_advisor.infrastructure.repositories.analytics import (
+    SqlAlchemyAnalyticsRepository,
+)
 from transit_advisor.infrastructure.repositories.notification import (
     SqlAlchemyNotificationRepository,
 )
@@ -24,10 +27,12 @@ from transit_advisor.infrastructure.repositories.subscription import (
     SqlAlchemySubscriptionRepository,
 )
 from transit_advisor.infrastructure.repositories.trip import SqlAlchemyTripRepository
+from transit_advisor.services.analytics_service import AnalyticsService
 from transit_advisor.services.checksum_service import ChecksumService
 from transit_advisor.services.feed_upload_service import FeedUploadService
 from transit_advisor.services.feed_validation_service import FeedValidator
 from transit_advisor.services.gtfs_import_service import GtfsImportService
+from transit_advisor.services.journey_service import JourneyService
 from transit_advisor.services.notification_service import NotificationService
 from transit_advisor.services.schedule_diff_service import ScheduleDiffService
 from transit_advisor.services.schedule_update_service import ScheduleUpdateService
@@ -223,3 +228,27 @@ def get_subscription_service(
     return SubscriptionService(
         repository,
     )
+
+
+def get_journey_service(
+    stoptime_repository: Annotated[
+        SqlAlchemyStopTimeRepository,
+        Depends(get_stoptime_repository),
+    ],
+) -> JourneyService:
+    return JourneyService(stoptime_repository)
+
+
+def get_analytics_repository(
+    session: Annotated[Session, Depends(get_session)],
+) -> SqlAlchemyAnalyticsRepository:
+    return SqlAlchemyAnalyticsRepository(session)
+
+
+def get_analytics_service(
+    repository: Annotated[
+        SqlAlchemyAnalyticsRepository,
+        Depends(get_analytics_repository),
+    ],
+) -> AnalyticsService:
+    return AnalyticsService(repository)

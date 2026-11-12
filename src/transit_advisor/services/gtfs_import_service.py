@@ -6,6 +6,7 @@ from transit_advisor.domain.repositories.route import RouteRepository
 from transit_advisor.domain.repositories.stop import StopRepository
 from transit_advisor.domain.repositories.stoptime import StopTimeRepository
 from transit_advisor.domain.repositories.trip import TripRepository
+from transit_advisor.domain.upload_result import ImportStats
 from transit_advisor.infrastructure.archive.gtfs_archive_reader import GtfsArchiveReader
 from transit_advisor.infrastructure.gtfs.mappers.agency import to_agency
 from transit_advisor.infrastructure.gtfs.mappers.route import to_route
@@ -34,8 +35,8 @@ class GtfsImportService:
         archive_path: Path,
         reader: GtfsArchiveReader,
         schedule_version_id: int,
-    ) -> dict[str, int]:
-        stats: dict[str, int] = {}
+    ) -> dict[str, ImportStats]:
+        stats: dict[str, ImportStats] = {}
 
         if reader.exists(archive_path, "agency.txt"):
             stats["agencies"] = self.import_agencies(
@@ -68,25 +69,28 @@ class GtfsImportService:
     def import_agencies(
         self,
         rows: Iterator[dict[str, str]],
-    ) -> int:
+    ) -> ImportStats:
         imported = 0
+        rejected = 0
 
         for row in rows:
             agency = to_agency(row)
 
             if agency is None:
+                rejected += 1
                 continue
 
             self._agency_repository.save(agency)
             imported += 1
 
-        return imported
+        return ImportStats(imported=imported, rejected=rejected)
 
     def import_routes(
         self,
         rows: Iterator[dict[str, str]],
-    ) -> int:
+    ) -> ImportStats:
         imported = 0
+        rejected = 0
 
         for row in rows:
             gtfs_agency_id = row.get("agency_id", "")
@@ -94,6 +98,7 @@ class GtfsImportService:
             agency = self._agency_repository.find_by_agency_id(gtfs_agency_id)
 
             if agency is None or agency.id is None:
+                rejected += 1
                 continue
 
             route = to_route(
@@ -102,42 +107,47 @@ class GtfsImportService:
             )
 
             if route is None:
+                rejected += 1
                 continue
 
             self._route_repository.save(route)
             imported += 1
 
-        return imported
+        return ImportStats(imported=imported, rejected=rejected)
 
     def import_stops(
         self,
         rows: Iterator[dict[str, str]],
-    ) -> int:
+    ) -> ImportStats:
         imported = 0
+        rejected = 0
 
         for row in rows:
             stop = to_stop(row)
 
             if stop is None:
+                rejected += 1
                 continue
 
             self._stop_repository.save(stop)
             imported += 1
 
-        return imported
+        return ImportStats(imported=imported, rejected=rejected)
 
     def import_trips(
         self,
         rows: Iterator[dict[str, str]],
         schedule_version_id: int,
-    ) -> int:
+    ) -> ImportStats:
         imported = 0
+        rejected = 0
 
         for row in rows:
             gtfs_route_id = row.get("route_id", "")
             route = self._route_repository.find_by_route_id(gtfs_route_id)
 
             if route is None or route.id is None:
+                rejected += 1
                 continue
 
             trip = to_trip(
@@ -147,18 +157,20 @@ class GtfsImportService:
             )
 
             if trip is None:
+                rejected += 1
                 continue
 
             self._trip_repository.save(trip)
             imported += 1
 
-        return imported
+        return ImportStats(imported=imported, rejected=rejected)
 
     def import_stoptimes(
         self,
         rows: Iterator[dict[str, str]],
-    ) -> int:
+    ) -> ImportStats:
         imported = 0
+        rejected = 0
 
         trip_cache: dict[str, int] = {}
         stop_cache: dict[str, int] = {}
@@ -167,31 +179,25 @@ class GtfsImportService:
             gtfs_trip_id = row.get("trip_id", "")
             gtfs_stop_id = row.get("stop_id", "")
 
-            trip_id = trip_cache.get(
-                gtfs_trip_id,
-            )
+            trip_id = trip_cache.get(gtfs_trip_id)
 
             if trip_id is None:
-                trip = self._trip_repository.find_by_trip_id(
-                    gtfs_trip_id,
-                )
+                trip = self._trip_repository.find_by_trip_id(gtfs_trip_id)
 
                 if trip is None or trip.id is None:
+                    rejected += 1
                     continue
 
                 trip_id = trip.id
                 trip_cache[gtfs_trip_id] = trip_id
 
-            stop_id = stop_cache.get(
-                gtfs_stop_id,
-            )
+            stop_id = stop_cache.get(gtfs_stop_id)
 
             if stop_id is None:
-                stop = self._stop_repository.find_by_stop_id(
-                    gtfs_stop_id,
-                )
+                stop = self._stop_repository.find_by_stop_id(gtfs_stop_id)
 
                 if stop is None or stop.id is None:
+                    rejected += 1
                     continue
 
                 stop_id = stop.id
@@ -204,16 +210,10 @@ class GtfsImportService:
             )
 
             if stop_time is None:
+                rejected += 1
                 continue
 
-            self._stoptime_repository.save(
-                stop_time,
-            )
-
+            self._stoptime_repository.save(stop_time)
             imported += 1
 
-            # FIXME
-            if imported % 10000 == 0:
-                print(f"Imported {imported} stop times")
-
-        return imported
+        return ImportStats(imported=imported, rejected=rejected)

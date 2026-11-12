@@ -3,6 +3,11 @@ from datetime import datetime
 from pydantic import BaseModel, ConfigDict, Field
 
 
+class ImportStatsResponse(BaseModel):
+    imported: int
+    rejected: int
+
+
 class UploadFeedResponse(BaseModel):
     checksum: str = Field(..., description="SHA-256 checksum of the uploaded archive.")
     imported: bool = Field(
@@ -11,6 +16,7 @@ class UploadFeedResponse(BaseModel):
     duplicate: bool = Field(
         ..., description="True if a version with this checksum already existed."
     )
+    stats: dict[str, ImportStatsResponse]
 
 
 class NotificationResponse(BaseModel):
@@ -81,3 +87,32 @@ class DepartureResponse(BaseModel):
     arrival_time: str = Field(..., description="Arrival time (HH:MM:SS).")
     departure_time: str = Field(..., description="Departure time (HH:MM:SS).")
     stop_sequence: int = Field(..., description="Sequence of the stop in the trip.")
+
+
+class JourneyResponse(BaseModel):
+    trip_id: int
+    from_stop_id: int
+    to_stop_id: int
+    departure_time: str
+    arrival_time: str
+    stop_sequence_start: int
+    stop_sequence_end: int
+
+
+class TripsByDayResponse(BaseModel):
+    route_id: int
+    trips_by_day: dict[str, int]
+
+
+class AverageHeadwayResponse(BaseModel):
+    route_id: int
+    average_headway_minutes: float | None
+
+
+class TopStopResponse(BaseModel):
+    stop_id: int
+    route_count: int
+
+
+class TopStopsResponse(BaseModel):
+    stops: list[TopStopResponse]

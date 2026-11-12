@@ -1,7 +1,7 @@
 from datetime import time
 
-from sqlalchemy import select
-from sqlalchemy.orm import Session
+from sqlalchemy import and_, select
+from sqlalchemy.orm import Session, aliased
 
 from transit_advisor.domain.stoptime import StopTime
 from transit_advisor.infrastructure.database.models.stoptime import (
@@ -112,3 +112,31 @@ class SqlAlchemyStopTimeRepository:
 
         models = self._session.scalars(statement).all()
         return [self._to_domain(model) for model in models]
+
+    def find_direct_journeys(
+        self,
+        from_stop_id: int,
+        to_stop_id: int,
+        limit: int = 20,
+        offset: int = 0,
+    ) -> list[tuple[StopTime, StopTime]]:
+        st1 = aliased(StopTimeModel)
+        st2 = aliased(StopTimeModel)
+
+        statement = (
+            select(st1, st2)
+            .where(
+                and_(
+                    st1.trip_id == st2.trip_id,
+                    st1.stop_id == from_stop_id,
+                    st2.stop_id == to_stop_id,
+                    st1.stop_sequence < st2.stop_sequence,
+                )
+            )
+            .order_by(st1.departure_time)
+            .offset(offset)
+            .limit(limit)
+        )
+
+        results = self._session.execute(statement).all()
+        return [(self._to_domain(row[0]), self._to_domain(row[1])) for row in results]

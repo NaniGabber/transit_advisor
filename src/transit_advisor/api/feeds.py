@@ -5,9 +5,10 @@ from pathlib import Path
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, status
+from sqlalchemy.orm import Session
 
-from transit_advisor.api.dependencies import get_feed_upload_service
-from transit_advisor.api.schemas import UploadFeedResponse
+from transit_advisor.api.dependencies import get_feed_upload_service, get_session
+from transit_advisor.api.schemas import ImportStatsResponse, UploadFeedResponse
 from transit_advisor.domain.upload_result import UploadResult
 from transit_advisor.services.feed_upload_service import FeedUploadService
 
@@ -32,10 +33,14 @@ def upload_feed(
         FeedUploadService,
         Depends(get_feed_upload_service),
     ],
+    session: Annotated[
+        Session,
+        Depends(get_session),
+    ],
 ) -> UploadFeedResponse:
     if not file.filename or not file.filename.endswith(".zip"):
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail="File must be a .zip archive.",
         )
 
@@ -53,7 +58,8 @@ def upload_feed(
                 detail="File is not a valid zip archive.",
             ) from exc
 
-        result: UploadResult = service.upload(tmp_path)
+        with session.begin():
+            result: UploadResult = service.upload(tmp_path)
 
         if not result.imported and not result.duplicate:
             raise HTTPException(
@@ -71,6 +77,10 @@ def upload_feed(
             checksum=result.checksum,
             imported=result.imported,
             duplicate=result.duplicate,
+            stats={
+                key: ImportStatsResponse(imported=stat.imported, rejected=stat.rejected)
+                for key, stat in result.stats.items()
+            },
         )
     finally:
         tmp_path.unlink(missing_ok=True)

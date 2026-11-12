@@ -1,3 +1,4 @@
+from transit_advisor.domain.journey import Journey
 from transit_advisor.domain.repositories.stoptime import StopTimeRepository
 
 
@@ -14,7 +15,7 @@ class JourneyService:
         to_stop_id: int,
         limit: int = 20,
         offset: int = 0,
-    ) -> list[dict[str, object]]:
+    ) -> list[Journey]:
         journeys = self._stoptime_repository.find_direct_journeys(
             from_stop_id=from_stop_id,
             to_stop_id=to_stop_id,
@@ -22,17 +23,17 @@ class JourneyService:
             offset=offset,
         )
 
-        result = []
+        result: list[Journey] = []
         for departure, arrival in journeys:
             result.append(
-                {
-                    "trip_id": departure.trip_id,
-                    "from_stop_id": departure.stop_id,
-                    "to_stop_id": arrival.stop_id,
-                    "departure_time": departure.departure_time,
-                    "arrival_time": arrival.arrival_time,
-                    "stop_sequence_start": departure.stop_sequence,
-                    "stop_sequence_end": arrival.stop_sequence,
-                }
+                Journey(
+                    trip_id=departure.trip_id,
+                    from_stop_id=departure.stop_id,
+                    to_stop_id=arrival.stop_id,
+                    departure_time=departure.departure_time,
+                    arrival_time=arrival.arrival_time,
+                    stop_sequence_start=departure.stop_sequence,
+                    stop_sequence_end=arrival.stop_sequence,
+                )
             )
         return result

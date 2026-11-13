@@ -10,6 +10,11 @@ class StopTimeRepository(Protocol):
         stop_time: StopTime,
     ) -> StopTime: ...
 
+    def save_all(
+        self,
+        stop_times: list[StopTime],
+    ) -> list[StopTime]: ...
+
     def find_by_trip_id(
         self,
         trip_id: int,

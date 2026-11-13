@@ -4,6 +4,7 @@ from datetime import datetime, time
 from pathlib import Path
 
 from transit_advisor.domain.agency import Agency
+from transit_advisor.domain.exceptions import AlreadySubscribedError
 from transit_advisor.domain.notification import Notification
 from transit_advisor.domain.route import Route
 from transit_advisor.domain.scheduleversion import ScheduleVersion
@@ -438,32 +439,43 @@ def get_notification_service() -> FakeNotificationContainer:
 class FakeSubscriptionRepository:
     def __init__(self) -> None:
         self.saved: list[Subscription] = []
+        self._next_id = 1
 
-    def save(
-        self,
-        subscription: Subscription,
-    ) -> Subscription:
+    def save(self, subscription: Subscription) -> Subscription:
         if subscription.id is None:
-            subscription = replace(subscription, id=len(self.saved) + 1)
+            existing = self.find_by_user_and_route(
+                subscription.user_id, subscription.route_id
+            )
+            if existing is not None:
+                raise AlreadySubscribedError(
+                    subscription.user_id, subscription.route_id
+                )
+            subscription = replace(subscription, id=self._next_id)
+            self._next_id += 1
         self.saved.append(subscription)
         return subscription
 
-    def find_by_route_id(
-        self,
-        route_id: int,
-    ) -> list[Subscription]:
-        return [
-            subscription
-            for subscription in self.saved
-            if subscription.route_id == route_id
-        ]
+    def find_by_id(self, subscription_id: int) -> Subscription | None:
+        return next(
+            (s for s in self.saved if s.id == subscription_id),
+            None,
+        )
 
-    def find_by_user_id(
+    def find_by_user_id(self, user_id: int) -> list[Subscription]:
+        return [s for s in self.saved if s.user_id == user_id]
+
+    def find_by_route_id(self, route_id: int) -> list[Subscription]:
+        return [s for s in self.saved if s.route_id == route_id]
+
+    def find_by_user_and_route(
         self,
         user_id: int,
-    ) -> list[Subscription]:
-        return [
-            subscription
-            for subscription in self.saved
-            if subscription.user_id == user_id
-        ]
+        route_id: int,
+    ) -> Subscription | None:
+        return next(
+            (s for s in self.saved if s.user_id == user_id and s.route_id == route_id),
+            None,
+        )
+
+    def delete(self, subscription_id: int) -> None:
+        self.saved = [s for s in self.saved if s.id != subscription_id]

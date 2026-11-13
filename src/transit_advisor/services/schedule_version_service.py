@@ -1,20 +1,14 @@
 from datetime import UTC, datetime
 
-from sqlalchemy.exc import IntegrityError
-
+from transit_advisor.domain.exceptions import DuplicateScheduleVersionError
 from transit_advisor.domain.repositories.scheduleversion import (
     ScheduleVersionRepository,
 )
-from transit_advisor.domain.scheduleversion import (
-    ScheduleVersion,
-)
+from transit_advisor.domain.scheduleversion import ScheduleVersion
 
 
 class ScheduleVersionService:
-    def __init__(
-        self,
-        repository: ScheduleVersionRepository,
-    ) -> None:
+    def __init__(self, repository: ScheduleVersionRepository) -> None:
         self._repository = repository
 
     def create_version(self, checksum: str) -> ScheduleVersion | None:
@@ -24,8 +18,10 @@ class ScheduleVersionService:
         try:
             return self._repository.save(
                 ScheduleVersion(
-                    id=None, checksum=checksum, imported_at=datetime.now(UTC)
+                    id=None,
+                    checksum=checksum,
+                    imported_at=datetime.now(UTC),
                 )
             )
-        except IntegrityError:
+        except DuplicateScheduleVersionError:
             return None

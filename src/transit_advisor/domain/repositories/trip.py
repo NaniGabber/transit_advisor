@@ -9,10 +9,20 @@ class TripRepository(Protocol):
         trip: Trip,
     ) -> Trip: ...
 
+    def save_all(
+        self,
+        trips: list[Trip],
+    ) -> list[Trip]: ...
+
     def find_by_trip_id(
         self,
         trip_id: str,
     ) -> Trip | None: ...
+
+    def find_by_trip_ids(
+        self,
+        trip_ids: list[str],
+    ) -> dict[str, Trip]: ...
 
     def find_by_schedule_version_id(
         self,

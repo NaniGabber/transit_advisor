@@ -30,7 +30,7 @@ def test_duplicate_subscription_returns_409(
     assert route.id is not None
 
     payload = {
-        "user_id": 1,
+        "user_id": 10001,
         "route_id": route.id,
     }
 

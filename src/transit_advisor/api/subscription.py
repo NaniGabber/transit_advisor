@@ -1,27 +1,18 @@
 from typing import Annotated
 
-from fastapi import (
-    APIRouter,
-    Depends,
-    HTTPException,
-    status,
-)
+from fastapi import APIRouter, Depends, HTTPException, status
 
 from transit_advisor.api.auth import Role, require_role
-from transit_advisor.api.dependencies import (
-    get_subscription_repository,
-    get_subscription_service,
-)
+from transit_advisor.api.dependencies import get_subscription_service
 from transit_advisor.api.schemas import (
     CreateSubscriptionRequest,
     SubscriptionResponse,
 )
-from transit_advisor.infrastructure.repositories.subscription import (
-    SqlAlchemySubscriptionRepository,
+from transit_advisor.domain.exceptions import (
+    AlreadySubscribedError,
+    RouteNotFoundError,
 )
-from transit_advisor.services.subscription_service import (
-    SubscriptionService,
-)
+from transit_advisor.services.subscription_service import SubscriptionService
 
 router = APIRouter(
     prefix="/subscriptions",
@@ -36,6 +27,7 @@ router = APIRouter(
     dependencies=[Depends(require_role(Role.USER, Role.ADMIN))],
     responses={
         403: {"description": "Only user or admin can subscribe."},
+        404: {"description": "Route not found."},
         409: {"description": "Subscription already exists."},
     },
 )
@@ -46,16 +38,24 @@ def create_subscription(
         Depends(get_subscription_service),
     ],
 ) -> SubscriptionResponse:
-    subscription = service.subscribe(
-        user_id=request.user_id,
-        route_id=request.route_id,
-    )
-
-    if subscription is None or subscription.id is None:
+    try:
+        subscription = service.subscribe(
+            user_id=request.user_id,
+            route_id=request.route_id,
+        )
+    except RouteNotFoundError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Route {request.route_id} not found",
+        ) from exc
+    except AlreadySubscribedError as exc:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail="Subscription already exists.",
-        )
+        ) from exc
+
+    if subscription.id is None:
+        raise RuntimeError("Subscription was saved without an id")
 
     return SubscriptionResponse(
         id=subscription.id,
@@ -71,21 +71,20 @@ def create_subscription(
 )
 def get_subscriptions(
     user_id: int,
-    repository: Annotated[
-        SqlAlchemySubscriptionRepository,
-        Depends(get_subscription_repository),
+    service: Annotated[
+        SubscriptionService,
+        Depends(get_subscription_service),
     ],
 ) -> list[SubscriptionResponse]:
-    subscriptions = repository.find_by_user_id(
-        user_id,
-    )
+    subscriptions = service.list_for_user(user_id)
 
     return [
         SubscriptionResponse(
-            id=subscription.id or 0,
-            user_id=subscription.user_id,
-            route_id=subscription.route_id,
-            is_active=subscription.is_active,
+            id=sub.id,
+            user_id=sub.user_id,
+            route_id=sub.route_id,
+            is_active=sub.is_active,
         )
-        for subscription in subscriptions
+        for sub in subscriptions
+        if sub.id is not None
     ]

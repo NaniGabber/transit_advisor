@@ -33,7 +33,7 @@ router = APIRouter(
     "",
     response_model=SubscriptionResponse,
     status_code=status.HTTP_201_CREATED,
-    dependencies=[Depends(require_role(Role.USER, Role.ADMIN))],  # <-- ДОДАНО
+    dependencies=[Depends(require_role(Role.USER, Role.ADMIN))],
     responses={
         403: {"description": "Only user or admin can subscribe."},
         409: {"description": "Subscription already exists."},

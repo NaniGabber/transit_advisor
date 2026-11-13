@@ -33,7 +33,6 @@ class SqlAlchemyStopTimeRepository:
 
         self._session.add(stop_time_model)
         self._session.flush()
-        self._session.refresh(stop_time_model)
         return self._to_domain(stop_time_model)
 
     def find_by_trip_id(

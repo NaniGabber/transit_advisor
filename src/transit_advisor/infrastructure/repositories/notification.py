@@ -42,7 +42,6 @@ class SqlAlchemyNotificationRepository:
 
         self._session.add(model)
         self._session.flush()
-        self._session.refresh(model)
 
         return self._to_domain(model)
 

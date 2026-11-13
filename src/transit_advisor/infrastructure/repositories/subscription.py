@@ -27,7 +27,6 @@ class SqlAlchemySubscriptionRepository:
 
         self._session.add(model)
         self._session.flush()
-        self._session.refresh(model)
 
         return Subscription(
             id=model.id,

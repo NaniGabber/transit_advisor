@@ -8,7 +8,7 @@ DATABASE_URL: str = os.environ.get(
     "postgresql+psycopg://postgres:postgres@localhost:5432/transit",
 )
 
-engine = create_engine(DATABASE_URL, pool_pre_ping=True)
+engine = create_engine(DATABASE_URL, pool_pre_ping=True, echo=True)
 
 SessionLocal = sessionmaker(
     bind=engine,

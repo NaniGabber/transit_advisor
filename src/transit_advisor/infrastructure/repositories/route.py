@@ -33,7 +33,6 @@ class SqlAlchemyRouteRepository:
 
         self._session.add(route_model)
         self._session.flush()
-        self._session.refresh(route_model)
 
         return self._to_domain(route_model)
 

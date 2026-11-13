@@ -30,7 +30,6 @@ class SqlAlchemyAgencyRepository:
 
         self._session.add(agency_model)
         self._session.flush()
-        self._session.refresh(agency_model)
 
         return Agency(
             id=agency_model.id,

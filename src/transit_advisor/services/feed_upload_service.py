@@ -37,13 +37,13 @@ class FeedUploadService:
         if version is None:
             return UploadResult(imported=False, duplicate=True, checksum=checksum)
 
-        self._import_service.import_all(
-            archive_path, self._archive_reader, schedule_version_id=version.id or 0
-        )
+        if version.id is None:
+            raise RuntimeError("ScheduleVersion was saved without an id")
+
         stats = self._import_service.import_all(
             archive_path,
             self._archive_reader,
-            schedule_version_id=version.id or 0,
+            schedule_version_id=version.id,
         )
 
         return UploadResult(

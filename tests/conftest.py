@@ -240,8 +240,8 @@ def app(
 
     app.dependency_overrides[get_feed_upload_service] = lambda: feed_upload_service
     app.dependency_overrides[get_session] = lambda: session
-    app.dependency_overrides[get_schedule_update_service] = (
-        lambda: schedule_update_service
+    app.dependency_overrides[get_schedule_update_service] = lambda: (
+        schedule_update_service
     )
     yield app
     app.dependency_overrides.clear()

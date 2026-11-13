@@ -1,4 +1,4 @@
-from sqlalchemy import Boolean, ForeignKey, UniqueConstraint
+from sqlalchemy import Boolean, ForeignKey, Integer, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column
 
 from transit_advisor.infrastructure.database.base import Base
@@ -17,9 +17,13 @@ class SubscriptionModel(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
 
-    user_id: Mapped[int]
+    user_id: Mapped[int] = mapped_column(Integer, nullable=False)
 
-    route_id: Mapped[int] = mapped_column(ForeignKey("routes.id"))
+    route_id: Mapped[int] = mapped_column(
+        ForeignKey("routes.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
 
     is_active: Mapped[bool] = mapped_column(
         Boolean,

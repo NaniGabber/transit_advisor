@@ -18,3 +18,11 @@ class SubscriptionRepository(Protocol):
         self,
         route_id: int,
     ) -> list[Subscription]: ...
+
+    def find_by_user_and_route(
+        self,
+        user_id: int,
+        route_id: int,
+    ) -> Subscription | None: ...
+
+    def delete(self, subscription_id: int) -> None: ...

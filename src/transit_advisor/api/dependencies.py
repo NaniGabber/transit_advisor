@@ -54,6 +54,10 @@ def get_session() -> Generator[Session, None, None]:
     session = SessionLocal()
     try:
         yield session
+        session.commit()
+    except Exception:
+        session.rollback()
+        raise
     finally:
         session.close()
 
@@ -224,9 +228,14 @@ def get_subscription_service(
         SqlAlchemySubscriptionRepository,
         Depends(get_subscription_repository),
     ],
+    route_repository: Annotated[
+        SqlAlchemyRouteRepository,
+        Depends(get_route_repository),
+    ],
 ) -> SubscriptionService:
     return SubscriptionService(
-        repository,
+        repository=repository,
+        route_repository=route_repository,
     )
 
 

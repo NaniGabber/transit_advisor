@@ -13,18 +13,23 @@ class SqlAlchemyTripRepository:
         self._session = session
 
     def save(self, trip: Trip) -> Trip:
-        trip_model = TripModel(
-            trip_id=trip.trip_id,
-            route_id=trip.route_id,
-            headsign=trip.headsign,
-            schedule_version_id=trip.schedule_version_id,
-            service_id=trip.service_id,
-        )
+        trip_model = self._to_model(trip)
 
         self._session.add(trip_model)
         self._session.flush()
 
         return self._to_domain(trip_model)
+
+    def save_all(self, trips: list[Trip]) -> list[Trip]:
+        """Bulk insert. Один INSERT на весь батч."""
+        if not trips:
+            return []
+
+        models = [self._to_model(t) for t in trips]
+        self._session.add_all(models)
+        self._session.flush()
+
+        return [self._to_domain(m) for m in models]
 
     def find_by_trip_id(self, trip_id: str) -> Trip | None:
         statement = select(TripModel).where(
@@ -38,6 +43,15 @@ class SqlAlchemyTripRepository:
 
         return self._to_domain(trip_model)
 
+    def find_by_trip_ids(self, trip_ids: list[str]) -> dict[str, Trip]:
+        if not trip_ids:
+            return {}
+
+        statement = select(TripModel).where(
+            TripModel.trip_id.in_(trip_ids),
+        )
+        return {m.trip_id: self._to_domain(m) for m in self._session.scalars(statement)}
+
     def find_by_schedule_version_id(
         self,
         schedule_version_id: int,
@@ -45,7 +59,16 @@ class SqlAlchemyTripRepository:
         statement = select(TripModel).where(
             TripModel.schedule_version_id == schedule_version_id
         )
-        return [self._to_domain(m) for m in self._session.scalars(statement).all()]
+        return [self._to_domain(m) for m in self._session.scalars(statement)]
+
+    def _to_model(self, trip: Trip) -> TripModel:
+        return TripModel(
+            trip_id=trip.trip_id,
+            route_id=trip.route_id,
+            headsign=trip.headsign,
+            schedule_version_id=trip.schedule_version_id,
+            service_id=trip.service_id,
+        )
 
     def _to_domain(self, model: TripModel) -> Trip:
         return Trip(

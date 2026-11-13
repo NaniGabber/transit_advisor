@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import UTC, datetime
 
 from sqlalchemy.exc import IntegrityError
 
@@ -23,7 +23,9 @@ class ScheduleVersionService:
             return None
         try:
             return self._repository.save(
-                ScheduleVersion(id=None, checksum=checksum, imported_at=datetime.now())
+                ScheduleVersion(
+                    id=None, checksum=checksum, imported_at=datetime.now(UTC)
+                )
             )
         except IntegrityError:
-            return None  # паралельний запит вставив ту саму версію
+            return None

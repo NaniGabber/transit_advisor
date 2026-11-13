@@ -141,21 +141,25 @@ class GtfsImportService:
     ) -> ImportStats:
         imported = 0
         rejected = 0
+        route_cache: dict[str, int] = {}  # <-- кеш route_id
 
         for row in rows:
             gtfs_route_id = row.get("route_id", "")
-            route = self._route_repository.find_by_route_id(gtfs_route_id)
 
-            if route is None or route.id is None:
-                rejected += 1
-                continue
+            route_id = route_cache.get(gtfs_route_id)
+            if route_id is None:
+                route = self._route_repository.find_by_route_id(gtfs_route_id)
+                if route is None or route.id is None:
+                    rejected += 1
+                    continue
+                route_id = route.id
+                route_cache[gtfs_route_id] = route_id
 
             trip = to_trip(
                 row=row,
-                route_id=route.id,
+                route_id=route_id,
                 schedule_version_id=schedule_version_id,
             )
-
             if trip is None:
                 rejected += 1
                 continue

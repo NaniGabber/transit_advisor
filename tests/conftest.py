@@ -31,6 +31,7 @@ from transit_advisor.api.feeds import router as feeds_router
 from transit_advisor.api.journeys import router as journeys_router
 from transit_advisor.api.notification import router as notifications_router
 from transit_advisor.api.routes import router as routes_router
+from transit_advisor.api.stops import router as stops_router
 from transit_advisor.api.subscription import router as subscriptions_router
 from transit_advisor.domain.agency import Agency
 from transit_advisor.domain.route import Route
@@ -237,6 +238,7 @@ def app(
     app.include_router(journeys_router)
     app.include_router(analytics_router)
     app.include_router(routes_router)
+    app.include_router(stops_router)
 
     app.dependency_overrides[get_feed_upload_service] = lambda: feed_upload_service
     app.dependency_overrides[get_session] = lambda: session

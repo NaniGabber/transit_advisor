@@ -43,9 +43,11 @@ app.include_router(
 app.include_router(
     stops_router,
 )
+
 app.include_router(
     journeys_router,
 )
+
 app.include_router(
     analytics_router,
 )

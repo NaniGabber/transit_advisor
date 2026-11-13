@@ -1,11 +1,16 @@
 from collections.abc import Iterator
 from pathlib import Path
 
+from transit_advisor.domain.agency import Agency
 from transit_advisor.domain.repositories.agency import AgencyRepository
 from transit_advisor.domain.repositories.route import RouteRepository
 from transit_advisor.domain.repositories.stop import StopRepository
 from transit_advisor.domain.repositories.stoptime import StopTimeRepository
 from transit_advisor.domain.repositories.trip import TripRepository
+from transit_advisor.domain.route import Route
+from transit_advisor.domain.stop import Stop
+from transit_advisor.domain.stoptime import StopTime
+from transit_advisor.domain.trip import Trip
 from transit_advisor.domain.upload_result import ImportStats
 from transit_advisor.infrastructure.archive.gtfs_archive_reader import GtfsArchiveReader
 from transit_advisor.infrastructure.gtfs.mappers.agency import to_agency
@@ -13,6 +18,8 @@ from transit_advisor.infrastructure.gtfs.mappers.route import to_route
 from transit_advisor.infrastructure.gtfs.mappers.stop import to_stop
 from transit_advisor.infrastructure.gtfs.mappers.stoptime import to_stoptime
 from transit_advisor.infrastructure.gtfs.mappers.trip import to_trip
+
+BATCH_SIZE = 1000
 
 
 class GtfsImportService:
@@ -72,16 +79,23 @@ class GtfsImportService:
     ) -> ImportStats:
         imported = 0
         rejected = 0
+        batch: list[Agency] = []
 
         for row in rows:
             agency = to_agency(row)
-
             if agency is None:
                 rejected += 1
                 continue
 
-            self._agency_repository.save(agency)
-            imported += 1
+            batch.append(agency)
+            if len(batch) >= BATCH_SIZE:
+                self._agency_repository.save_all(batch)
+                imported += len(batch)
+                batch.clear()
+
+        if batch:
+            self._agency_repository.save_all(batch)
+            imported += len(batch)
 
         return ImportStats(imported=imported, rejected=rejected)
 
@@ -91,27 +105,35 @@ class GtfsImportService:
     ) -> ImportStats:
         imported = 0
         rejected = 0
+        batch: list[Route] = []
+        agency_cache: dict[str, int] = {}
 
         for row in rows:
             gtfs_agency_id = row.get("agency_id", "")
 
-            agency = self._agency_repository.find_by_agency_id(gtfs_agency_id)
+            agency_id = agency_cache.get(gtfs_agency_id)
+            if agency_id is None:
+                agency = self._agency_repository.find_by_agency_id(gtfs_agency_id)
+                if agency is None or agency.id is None:
+                    rejected += 1
+                    continue
+                agency_id = agency.id
+                agency_cache[gtfs_agency_id] = agency_id
 
-            if agency is None or agency.id is None:
-                rejected += 1
-                continue
-
-            route = to_route(
-                row=row,
-                agency_id=agency.id,
-            )
-
+            route = to_route(row=row, agency_id=agency_id)
             if route is None:
                 rejected += 1
                 continue
 
-            self._route_repository.save(route)
-            imported += 1
+            batch.append(route)
+            if len(batch) >= BATCH_SIZE:
+                self._route_repository.save_all(batch)
+                imported += len(batch)
+                batch.clear()
+
+        if batch:
+            self._route_repository.save_all(batch)
+            imported += len(batch)
 
         return ImportStats(imported=imported, rejected=rejected)
 
@@ -121,16 +143,23 @@ class GtfsImportService:
     ) -> ImportStats:
         imported = 0
         rejected = 0
+        batch: list[Stop] = []
 
         for row in rows:
             stop = to_stop(row)
-
             if stop is None:
                 rejected += 1
                 continue
 
-            self._stop_repository.save(stop)
-            imported += 1
+            batch.append(stop)
+            if len(batch) >= BATCH_SIZE:
+                self._stop_repository.save_all(batch)
+                imported += len(batch)
+                batch.clear()
+
+        if batch:
+            self._stop_repository.save_all(batch)
+            imported += len(batch)
 
         return ImportStats(imported=imported, rejected=rejected)
 
@@ -141,7 +170,8 @@ class GtfsImportService:
     ) -> ImportStats:
         imported = 0
         rejected = 0
-        route_cache: dict[str, int] = {}  # <-- кеш route_id
+        batch: list[Trip] = []
+        route_cache: dict[str, int] = {}
 
         for row in rows:
             gtfs_route_id = row.get("route_id", "")
@@ -164,8 +194,15 @@ class GtfsImportService:
                 rejected += 1
                 continue
 
-            self._trip_repository.save(trip)
-            imported += 1
+            batch.append(trip)
+            if len(batch) >= BATCH_SIZE:
+                self._trip_repository.save_all(batch)
+                imported += len(batch)
+                batch.clear()
+
+        if batch:
+            self._trip_repository.save_all(batch)
+            imported += len(batch)
 
         return ImportStats(imported=imported, rejected=rejected)
 
@@ -175,6 +212,7 @@ class GtfsImportService:
     ) -> ImportStats:
         imported = 0
         rejected = 0
+        batch: list[StopTime] = []
 
         trip_cache: dict[str, int] = {}
         stop_cache: dict[str, int] = {}
@@ -184,26 +222,20 @@ class GtfsImportService:
             gtfs_stop_id = row.get("stop_id", "")
 
             trip_id = trip_cache.get(gtfs_trip_id)
-
             if trip_id is None:
                 trip = self._trip_repository.find_by_trip_id(gtfs_trip_id)
-
                 if trip is None or trip.id is None:
                     rejected += 1
                     continue
-
                 trip_id = trip.id
                 trip_cache[gtfs_trip_id] = trip_id
 
             stop_id = stop_cache.get(gtfs_stop_id)
-
             if stop_id is None:
                 stop = self._stop_repository.find_by_stop_id(gtfs_stop_id)
-
                 if stop is None or stop.id is None:
                     rejected += 1
                     continue
-
                 stop_id = stop.id
                 stop_cache[gtfs_stop_id] = stop_id
 
@@ -212,12 +244,18 @@ class GtfsImportService:
                 trip_id=trip_id,
                 stop_id=stop_id,
             )
-
             if stop_time is None:
                 rejected += 1
                 continue
 
-            self._stoptime_repository.save(stop_time)
-            imported += 1
+            batch.append(stop_time)
+            if len(batch) >= BATCH_SIZE:
+                self._stoptime_repository.save_all(batch)
+                imported += len(batch)
+                batch.clear()
+
+        if batch:
+            self._stoptime_repository.save_all(batch)
+            imported += len(batch)
 
         return ImportStats(imported=imported, rejected=rejected)

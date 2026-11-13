@@ -23,7 +23,6 @@ class SqlAlchemyTripRepository:
 
         self._session.add(trip_model)
         self._session.flush()
-        self._session.refresh(trip_model)
 
         return self._to_domain(trip_model)
 

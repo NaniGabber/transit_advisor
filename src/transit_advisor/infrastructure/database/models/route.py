@@ -22,8 +22,4 @@ class RouteModel(Base):
 
     route_type: Mapped[int]
 
-    description: Mapped[str | None]
-    color: Mapped[str | None]
-    text_color: Mapped[str | None]
-
     agency = relationship("AgencyModel")

@@ -1,6 +1,6 @@
 from collections.abc import Iterator
 from dataclasses import replace
-from datetime import time
+from datetime import datetime, time
 from pathlib import Path
 
 from transit_advisor.domain.agency import Agency
@@ -185,24 +185,26 @@ class FakeStopTimeRepository:
         self,
         from_stop_id: int,
         to_stop_id: int,
+        schedule_version_id: int | None = None,
+        from_time: time | None = None,
         limit: int = 20,
         offset: int = 0,
     ) -> list[tuple[StopTime, StopTime]]:
         results: list[tuple[StopTime, StopTime]] = []
 
-        # Групуємо StopTime за trip_id
         trips: dict[int, list[StopTime]] = {}
-        for st in self.saved:
-            trips.setdefault(st.trip_id, []).append(st)
+
+        for stop_time in self.saved:
+            trips.setdefault(stop_time.trip_id, []).append(stop_time)
 
         for trip_stop_times in trips.values():
-            # Сортуємо за stop_sequence
             trip_stop_times.sort(key=lambda st: st.stop_sequence)
 
             from_st = next(
                 (st for st in trip_stop_times if st.stop_id == from_stop_id),
                 None,
             )
+
             to_st = next(
                 (st for st in trip_stop_times if st.stop_id == to_stop_id),
                 None,
@@ -214,9 +216,21 @@ class FakeStopTimeRepository:
             if from_st.stop_sequence >= to_st.stop_sequence:
                 continue
 
+            if from_time is not None:
+                departure_time = datetime.strptime(
+                    from_st.departure_time,
+                    "%H:%M:%S",
+                ).time()
+
+                if departure_time < from_time:
+                    continue
+
             results.append((from_st, to_st))
 
-        results.sort(key=lambda pair: pair[0].departure_time)
+        results.sort(
+            key=lambda pair: pair[0].departure_time,
+        )
+
         return results[offset : offset + limit]
 
 

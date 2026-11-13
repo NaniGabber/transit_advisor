@@ -1,9 +1,7 @@
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from transit_advisor.domain.scheduleversion import (
-    ScheduleVersion,
-)
+from transit_advisor.domain.scheduleversion import ScheduleVersion
 from transit_advisor.infrastructure.database.models.scheduleversion import (
     ScheduleVersionModel,
 )
@@ -16,10 +14,7 @@ class SqlAlchemyScheduleVersionRepository:
     ) -> None:
         self._session = session
 
-    def save(
-        self,
-        version: ScheduleVersion,
-    ) -> ScheduleVersion:
+    def save(self, version: ScheduleVersion) -> ScheduleVersion:
         version_model = ScheduleVersionModel(
             checksum=version.checksum,
             imported_at=version.imported_at,
@@ -28,31 +23,23 @@ class SqlAlchemyScheduleVersionRepository:
         self._session.add(version_model)
         self._session.flush()
 
-        return ScheduleVersion(
-            id=version_model.id,
-            checksum=version_model.checksum,
-            imported_at=version_model.imported_at,
-        )
+        return self._to_domain(version_model)
 
-    def find_by_checksum(
-        self,
-        checksum: str,
-    ) -> ScheduleVersion | None:
-        statement = select(
-            ScheduleVersionModel,
-        ).where(
+    def find_by_checksum(self, checksum: str) -> ScheduleVersion | None:
+        statement = select(ScheduleVersionModel).where(
             ScheduleVersionModel.checksum == checksum,
         )
 
-        version_model = self._session.scalar(
-            statement,
-        )
+        version_model = self._session.scalar(statement)
 
         if version_model is None:
             return None
 
+        return self._to_domain(version_model)
+
+    def _to_domain(self, model: ScheduleVersionModel) -> ScheduleVersion:
         return ScheduleVersion(
-            id=version_model.id,
-            checksum=version_model.checksum,
-            imported_at=version_model.imported_at,
+            id=model.id,
+            checksum=model.checksum,
+            imported_at=model.imported_at,
         )

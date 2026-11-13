@@ -43,6 +43,8 @@ class StopTimeRepository(Protocol):
         self,
         from_stop_id: int,
         to_stop_id: int,
-        limit: int = 20,
+        schedule_version_id: int | None = None,
+        from_time: time | None = None,
+        limit: int = 100,
         offset: int = 0,
     ) -> list[tuple[StopTime, StopTime]]: ...

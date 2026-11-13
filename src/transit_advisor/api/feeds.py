@@ -23,7 +23,7 @@ router = APIRouter(
     "",
     response_model=UploadFeedResponse,
     status_code=status.HTTP_201_CREATED,
-    dependencies=[Depends(require_role(Role.ADMIN))],  # <-- ДОДАНО
+    dependencies=[Depends(require_role(Role.ADMIN))],
     responses={
         403: {"description": "Only admin can upload feeds."},
         409: {"description": "Feed with this checksum already exists."},

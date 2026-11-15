@@ -12,7 +12,7 @@ from transit_advisor.infrastructure.repositories.route import (
 )
 from transit_advisor.services.schedule_update_service import ScheduleUpdateService
 
-router = APIRouter(prefix="/routes", tags=["routes"])
+router = APIRouter(prefix="/api/v1/routes", tags=["routes"])
 
 
 @router.get(
@@ -21,9 +21,12 @@ router = APIRouter(prefix="/routes", tags=["routes"])
 )
 def get_route_diff(
     route_id: int,
-    from_version: int = Query(..., alias="from_version"),
-    to_version: int = Query(..., alias="to_version"),
-    service: ScheduleUpdateService = Depends(get_schedule_update_service),
+    from_version: Annotated[int, Query(alias="from_version")],
+    to_version: Annotated[int, Query(alias="to_version")],
+    service: Annotated[
+        ScheduleUpdateService,
+        Depends(get_schedule_update_service),
+    ],
 ) -> RouteDiffResponse:
     try:
         diff = service.compare_route_versions(

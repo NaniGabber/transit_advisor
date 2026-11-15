@@ -66,7 +66,7 @@ Uploads a GTFS archive. **Requires `X-Role: admin`.**
 **Errors:**
 
 - `403 Forbidden` — role is not `admin`.
-- `422 Unprocessable Entity` — the file is not a ZIP archive or does not contain the required GTFS files.
+- `422 Unprocessable Content` — the file is not a ZIP archive or does not contain the required GTFS files.
 - `409 Conflict` — an archive with the same `checksum` has already been imported.
 
 ---
@@ -174,7 +174,7 @@ Returns departure schedules for a stop.
 
 **Errors:**
 
-- `422 Unprocessable Entity` — invalid time format (must be `HH:MM`).
+- `422 Unprocessable Content` — invalid time format (must be `HH:MM`).
 
 ---
 
@@ -211,7 +211,7 @@ Finds direct journeys (no transfers) between two stops.
 
 **Errors:**
 
-- `422 Unprocessable Entity` — missing or invalid `from_stop` / `to_stop`.
+- `422 Unprocessable Content` — missing or invalid `from_stop` / `to_stop`.
 
 ---
 
@@ -314,7 +314,7 @@ Creates a route subscription. **Requires `X-Role: user` or `X-Role: admin`.**
 
 - `403 Forbidden` — role is not `user` or `admin`.
 - `409 Conflict` — subscription already exists.
-- `422 Unprocessable Entity` — invalid payload.
+- `422 Unprocessable Content` — invalid payload.
 
 ### `GET /api/v1/subscriptions/users/{user_id}`
 
@@ -405,5 +405,5 @@ Returns all unread notifications for a user.
 | `403 Forbidden` | Role is not allowed to access this endpoint. |
 | `404 Not Found` | Resource not found (for example, route or user). |
 | `409 Conflict` | Conflict (for example, duplicate subscription or feed). |
-| `422 Unprocessable Entity` | Validation error (for example, invalid time format or missing GTFS files). |
+| `422 Unprocessable Content` | Validation error (for example, invalid time format or missing GTFS files). |
 | `500 Internal Server Error` | Internal server error. |

@@ -27,7 +27,7 @@ The API uses a simple `X-Role` header (for course project purposes):
 Example:
 
 ```bash
-curl -X POST http://localhost:8000/feeds \
+curl -X POST http://localhost:8000/api/v1/imports/gtfs \
   -H "X-Role: admin" \
   -F "file=@feed.zip"
 ```
@@ -38,7 +38,7 @@ If the header is missing, the role defaults to `guest`.
 
 ## Feed API
 
-### `POST /feeds`
+### `POST /api/v1/imports/gtfs`
 
 Uploads a GTFS archive. **Requires `X-Role: admin`.**
 
@@ -73,7 +73,7 @@ Uploads a GTFS archive. **Requires `X-Role: admin`.**
 
 ## Route API
 
-### `GET /routes`
+### `GET /api/v1/routes`
 
 Searches routes by route number, name, or stop.
 
@@ -101,7 +101,7 @@ Searches routes by route number, name, or stop.
 ]
 ```
 
-### `GET /routes/{route_id}/diff`
+### `GET /api/v1/routes/{route_id}/diff`
 
 Compares two schedule versions for a specific route.
 
@@ -140,7 +140,7 @@ Compares two schedule versions for a specific route.
 
 ## Stop API
 
-### `GET /stops/{stop_id}/departures`
+### `GET /api/v1/stops/{stop_id}/departures`
 
 Returns departure schedules for a stop.
 
@@ -180,7 +180,7 @@ Returns departure schedules for a stop.
 
 ## Journey API
 
-### `GET /journeys`
+### `GET /api/v1/journeys`
 
 Finds direct journeys (no transfers) between two stops.
 
@@ -217,7 +217,7 @@ Finds direct journeys (no transfers) between two stops.
 
 ## Analytics API
 
-### `GET /analytics/routes/{route_id}/trips-by-day`
+### `GET /api/v1/analytics/routes/{route_id}/trips-by-day`
 
 Returns the number of trips for a route grouped by `service_id` (current schedule version).
 
@@ -240,7 +240,7 @@ Returns the number of trips for a route grouped by `service_id` (current schedul
 }
 ```
 
-### `GET /analytics/routes/{route_id}/headway`
+### `GET /api/v1/analytics/routes/{route_id}/headway`
 
 Returns the average headway (in minutes) between departures for a route.
 
@@ -261,7 +261,7 @@ Returns the average headway (in minutes) between departures for a route.
 
 If there are fewer than two departures, `average_headway_minutes` is `null`.
 
-### `GET /analytics/stops/top`
+### `GET /api/v1/analytics/stops/top`
 
 Returns the top stops by number of distinct routes.
 
@@ -286,7 +286,7 @@ Returns the top stops by number of distinct routes.
 
 ## Subscription API
 
-### `POST /subscriptions`
+### `POST /api/v1/subscriptions`
 
 Creates a route subscription. **Requires `X-Role: user` or `X-Role: admin`.**
 
@@ -316,7 +316,7 @@ Creates a route subscription. **Requires `X-Role: user` or `X-Role: admin`.**
 - `409 Conflict` — subscription already exists.
 - `422 Unprocessable Entity` — invalid payload.
 
-### `GET /subscriptions/users/{user_id}`
+### `GET /api/v1/subscriptions/users/{user_id}`
 
 Returns all subscriptions for a user.
 
@@ -343,7 +343,7 @@ Returns all subscriptions for a user.
 
 ## Notification API
 
-### `GET /notifications/users/{user_id}`
+### `GET /api/v1/notifications/users/{user_id}`
 
 Returns all notifications for a user.
 
@@ -369,7 +369,7 @@ Returns all notifications for a user.
 ]
 ```
 
-### `GET /notifications/users/{user_id}/unread`
+### `GET /api/v1/notifications/users/{user_id}/unread`
 
 Returns all unread notifications for a user.
 

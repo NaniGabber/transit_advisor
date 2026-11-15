@@ -35,29 +35,22 @@ def test_upload_duplicate_returns_409(
     client: TestClient,
     session: Session,
 ) -> None:
+    content = _gtfs_zip()  # ← один раз
+
     client.post(
         "/api/v1/imports/gtfs",
         headers={"X-Role": "admin"},
-        files={
-            "file": (
-                "feed.zip",
-                _gtfs_zip(),
-                "application/zip",
-            ),
-        },
+        files={"file": ("feed.zip", content, "application/zip")},
     )
 
     response = client.post(
         "/api/v1/imports/gtfs",
         headers={"X-Role": "admin"},
-        files={
-            "file": (
-                "feed.zip",
-                _gtfs_zip(),
-                "application/zip",
-            ),
-        },
+        files={"file": ("feed.zip", content, "application/zip")},
     )
+
+    assert response.status_code == 409
+    assert "already exists" in response.json()["detail"]
 
     assert response.status_code == 409
     assert "already exists" in response.json()["detail"]

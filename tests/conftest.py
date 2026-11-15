@@ -1,15 +1,16 @@
 import io
 import os
+import subprocess
+import uuid
 import zipfile
 from collections.abc import Callable, Generator
 from datetime import datetime
 from pathlib import Path
 
 import pytest
-from dotenv import load_dotenv
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, text
 from sqlalchemy.orm import Session, sessionmaker
 
 from tests.services.fake_repos import (
@@ -41,7 +42,6 @@ from transit_advisor.domain.subscription import Subscription
 from transit_advisor.domain.trip import Trip
 from transit_advisor.infrastructure.archive.gtfs_archive_reader import GtfsArchiveReader
 from transit_advisor.infrastructure.database import models  # noqa: F401
-from transit_advisor.infrastructure.database.base import Base
 from transit_advisor.infrastructure.repositories.agency import (
     SqlAlchemyAgencyRepository,
 )
@@ -77,32 +77,75 @@ from transit_advisor.services.schedule_diff_service import ScheduleDiffService
 from transit_advisor.services.schedule_update_service import ScheduleUpdateService
 from transit_advisor.services.schedule_version_service import ScheduleVersionService
 
-load_dotenv()
 
-DATABASE_URL = os.environ["DATABASE_URL"]
+@pytest.fixture(scope="session", autouse=True)
+def test_database() -> Generator[str, None, None]:
+    admin_url = "postgresql+psycopg://postgres:postgres@db:5432/postgres"
 
-engine = create_engine(DATABASE_URL)
+    db_name = f"transit_test_{uuid.uuid4().hex[:8]}"
 
-TestSessionLocal = sessionmaker(
-    bind=engine,
-    autoflush=False,
-    autocommit=False,
-)
+    database_url = f"postgresql+psycopg://postgres:postgres@db:5432/{db_name}"
+
+    admin_engine = create_engine(
+        admin_url,
+        isolation_level="AUTOCOMMIT",
+    )
+
+    with admin_engine.connect() as conn:
+        conn.execute(text(f'CREATE DATABASE "{db_name}"'))
+
+    old_database_url = os.environ.get("DATABASE_URL")
+
+    os.environ["DATABASE_URL"] = database_url
+
+    subprocess.run(
+        ["alembic", "upgrade", "head"],
+        check=True,
+        env=os.environ.copy(),
+    )
+
+    yield database_url
+
+    with admin_engine.connect() as conn:
+        conn.execute(
+            text(
+                """
+                SELECT pg_terminate_backend(pid)
+                FROM pg_stat_activity
+                WHERE datname = :dbname
+                """
+            ),
+            {"dbname": db_name},
+        )
+
+        conn.execute(text(f'DROP DATABASE IF EXISTS "{db_name}"'))
+
+    admin_engine.dispose()
+
+    if old_database_url:
+        os.environ["DATABASE_URL"] = old_database_url
 
 
 @pytest.fixture
-def session() -> Generator[Session, None, None]:
-    Base.metadata.create_all(bind=engine)
+def session(
+    test_database: str,
+) -> Generator[Session, None, None]:
+    engine = create_engine(test_database)
 
-    session = TestSessionLocal()
+    SessionLocal = sessionmaker(
+        bind=engine,
+        autoflush=False,
+        autocommit=False,
+    )
+
+    session = SessionLocal()
 
     try:
         yield session
     finally:
         session.rollback()
         session.close()
-
-        Base.metadata.drop_all(bind=engine)
+        engine.dispose()
 
 
 @pytest.fixture
@@ -250,8 +293,11 @@ def app(
 
 
 @pytest.fixture
-def client(app: FastAPI) -> TestClient:
-    return TestClient(app)
+def client(
+    app: FastAPI,
+) -> Generator[TestClient, None, None]:
+    with TestClient(app) as client:
+        yield client
 
 
 @pytest.fixture

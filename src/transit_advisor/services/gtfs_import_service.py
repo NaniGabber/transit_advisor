@@ -87,6 +87,11 @@ class GtfsImportService:
                 rejected += 1
                 continue
 
+            existing = self._agency_repository.find_by_agency_id(agency.agency_id)
+            if existing is not None:
+                imported += 1  # вважаємо обробленим, але не створюємо дублікат
+                continue
+
             batch.append(agency)
             if len(batch) >= BATCH_SIZE:
                 self._agency_repository.save_all(batch)
@@ -109,8 +114,14 @@ class GtfsImportService:
         agency_cache: dict[str, int] = {}
 
         for row in rows:
-            gtfs_agency_id = row.get("agency_id", "")
+            gtfs_route_id = row.get("route_id", "")
 
+            existing = self._route_repository.find_by_route_id(gtfs_route_id)
+            if existing is not None:
+                imported += 1
+                continue
+
+            gtfs_agency_id = row.get("agency_id", "")
             agency_id = agency_cache.get(gtfs_agency_id)
             if agency_id is None:
                 agency = self._agency_repository.find_by_agency_id(gtfs_agency_id)
@@ -149,6 +160,11 @@ class GtfsImportService:
             stop = to_stop(row)
             if stop is None:
                 rejected += 1
+                continue
+
+            existing = self._stop_repository.find_by_stop_id(stop.stop_id)
+            if existing is not None:
+                imported += 1
                 continue
 
             batch.append(stop)

@@ -126,6 +126,30 @@ def test_database() -> Generator[str, None, None]:
         os.environ["DATABASE_URL"] = old_database_url
 
 
+@pytest.fixture(autouse=True)
+def cleanup_database(session: Session):
+    yield
+
+    session.execute(
+        text(
+            """
+            TRUNCATE TABLE
+                notifications,
+                subscriptions,
+                stop_times,
+                trips,
+                routes,
+                stops,
+                agencies,
+                schedule_versions
+            RESTART IDENTITY CASCADE
+            """
+        )
+    )
+
+    session.commit()
+
+
 @pytest.fixture
 def session(
     test_database: str,

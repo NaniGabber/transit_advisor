@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, Query
@@ -9,7 +9,7 @@ from transit_advisor.infrastructure.repositories.stoptime import (
     SqlAlchemyStopTimeRepository,
 )
 
-router = APIRouter(prefix="/stops", tags=["stops"])
+router = APIRouter(prefix="/api/v1/stops", tags=["stops"])
 
 
 @router.get(
@@ -32,7 +32,6 @@ def get_departures(
     page: Annotated[int, Query(ge=1)] = 1,
     page_size: Annotated[int, Query(ge=1, le=100)] = 20,
 ) -> list[DepartureResponse]:
-    # Парсимо час
     if from_time:
         try:
             parsed_time = datetime.strptime(from_time, "%H:%M").time()
@@ -45,7 +44,7 @@ def get_departures(
                 detail="Invalid time format. Use HH:MM.",
             ) from err
     else:
-        parsed_time = datetime.now().time()
+        parsed_time = datetime.now(UTC).time()
 
     offset = (page - 1) * page_size
     departures = repository.find_departures(

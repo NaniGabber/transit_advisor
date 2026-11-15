@@ -1,5 +1,5 @@
 from sqlalchemy import ForeignKey, String, UniqueConstraint
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from transit_advisor.infrastructure.database.base import Base
 
@@ -32,3 +32,6 @@ class StopTimeModel(Base):
     departure_time: Mapped[str] = mapped_column(String(20), nullable=False)
 
     stop_sequence: Mapped[int] = mapped_column(nullable=False)
+
+    trip = relationship("TripModel", back_populates="stop_times")
+    stop = relationship("StopModel", back_populates="stop_times")

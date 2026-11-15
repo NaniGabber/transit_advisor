@@ -27,3 +27,4 @@ class RouteModel(Base):
     description: Mapped[str | None]
     color: Mapped[str | None]
     text_color: Mapped[str | None]
+    trips = relationship("TripModel", back_populates="route")

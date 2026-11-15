@@ -1,5 +1,5 @@
 from sqlalchemy import ForeignKey, Integer, String, UniqueConstraint
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from transit_advisor.infrastructure.database.base import Base
 
@@ -25,3 +25,6 @@ class TripModel(Base):
     headsign: Mapped[str | None]
 
     service_id: Mapped[str] = mapped_column(String(100))
+
+    route = relationship("RouteModel", back_populates="trips")
+    stop_times = relationship("StopTimeModel", back_populates="trip")

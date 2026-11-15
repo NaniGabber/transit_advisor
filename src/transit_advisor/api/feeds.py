@@ -14,13 +14,13 @@ from transit_advisor.domain.upload_result import UploadResult
 from transit_advisor.services.feed_upload_service import FeedUploadService
 
 router = APIRouter(
-    prefix="/feeds",
-    tags=["feeds"],
+    prefix="/api/v1/imports",
+    tags=["imports"],
 )
 
 
 @router.post(
-    "",
+    "/gtfs",
     response_model=UploadFeedResponse,
     status_code=status.HTTP_201_CREATED,
     dependencies=[Depends(require_role(Role.ADMIN))],
@@ -43,7 +43,7 @@ def upload_feed(
 ) -> UploadFeedResponse:
     if not file.filename or not file.filename.endswith(".zip"):
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail="File must be a .zip archive.",
         )
 
@@ -57,7 +57,7 @@ def upload_feed(
                 pass
         except zipfile.BadZipFile as exc:
             raise HTTPException(
-                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
                 detail="File is not a valid zip archive.",
             ) from exc
 
@@ -66,7 +66,7 @@ def upload_feed(
 
         if not result.imported and not result.duplicate:
             raise HTTPException(
-                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
                 detail="Feed validation failed. Missing required GTFS files.",
             )
 
@@ -81,7 +81,10 @@ def upload_feed(
             imported=result.imported,
             duplicate=result.duplicate,
             stats={
-                key: ImportStatsResponse(imported=stat.imported, rejected=stat.rejected)
+                key: ImportStatsResponse(
+                    imported=stat.imported,
+                    rejected=stat.rejected,
+                )
                 for key, stat in result.stats.items()
             },
         )

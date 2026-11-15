@@ -21,9 +21,10 @@ class SqlAlchemyScheduleVersionRepository:
             checksum=version.checksum,
             imported_at=version.imported_at,
         )
-        self._session.add(model)
         try:
-            self._session.flush()
+            with self._session.begin_nested():
+                self._session.add(model)
+                self._session.flush()
         except IntegrityError as exc:
             raise DuplicateScheduleVersionError(version.checksum) from exc
         return self._to_domain(model)

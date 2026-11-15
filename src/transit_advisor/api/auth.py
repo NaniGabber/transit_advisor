@@ -11,7 +11,7 @@ class Role(StrEnum):
 
 
 def require_role(*allowed_roles: Role) -> Callable[[str], None]:
-    def checker(x_role: str = Header(default="guest")) -> None:
+    def checker(x_role: str = Header(default="user")) -> None:
         try:
             role = Role(x_role)
         except ValueError:

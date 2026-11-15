@@ -9,6 +9,11 @@ class SubscriptionRepository(Protocol):
         subscription: Subscription,
     ) -> Subscription: ...
 
+    def find_by_id(
+        self,
+        subscription_id: int,
+    ) -> Subscription | None: ...
+
     def find_by_user_id(
         self,
         user_id: int,
@@ -24,5 +29,7 @@ class SubscriptionRepository(Protocol):
         user_id: int,
         route_id: int,
     ) -> Subscription | None: ...
+
+    def find_all(self) -> list[Subscription]: ...
 
     def delete(self, subscription_id: int) -> None: ...

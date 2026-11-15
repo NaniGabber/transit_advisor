@@ -74,3 +74,7 @@ class SqlAlchemySubscriptionRepository:
             user_id=model.user_id,
             route_id=model.route_id,
         )
+
+    def find_all(self) -> list[Subscription]:
+        statement = select(SubscriptionModel)
+        return [self._to_domain(m) for m in self._session.scalars(statement)]

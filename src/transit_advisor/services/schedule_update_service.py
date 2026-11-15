@@ -55,13 +55,20 @@ class ScheduleUpdateService:
 
         created_notifications = 0
 
+        all_subscriptions = self._subscription_repository.find_all()
+        created_notifications += self._notification_service.notify_about_added_routes(
+            diff=diff,
+            subscriptions=all_subscriptions,
+            schedule_version_id=schedule_version_id,
+        )
+
         for gtfs_route_id in diff.changed_stop_times:
             route = self._route_repository.find_by_route_id(gtfs_route_id)
             if route is None or route.id is None:
                 continue
 
-            subscriptions = self._subscription_repository.find_by_route_id(route.id)
-            for subscription in subscriptions:
+            route_sub = self._subscription_repository.find_by_route_id(route.id)
+            for subscription in route_sub:
                 self._notification_service.create_notification(
                     user_id=subscription.user_id,
                     subscription_id=subscription.id or 0,

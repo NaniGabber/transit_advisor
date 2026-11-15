@@ -275,6 +275,11 @@ def app(
     schedule_update_service: ScheduleUpdateService,
 ) -> Generator[FastAPI, None, None]:
     app = FastAPI()
+
+    @app.get("/")
+    def root() -> dict[str, str]:
+        return {"status": "ok"}
+
     app.include_router(feeds_router)
     app.include_router(subscriptions_router)
     app.include_router(notifications_router)

@@ -98,7 +98,7 @@ def test_find_direct_journey(
         _make_stop_time(trip.id, stop_2.id, "08:10:00", "08:10:00", 2)
     )
 
-    response = client.get(f"/journeys?from_stop={stop_1.id}&to_stop={stop_2.id}")
+    response = client.get(f"/api/v1/journeys?from_stop={stop_1.id}&to_stop={stop_2.id}")
 
     assert response.status_code == 200
     data = response.json()
@@ -144,7 +144,7 @@ def test_no_journeys_when_stops_not_connected(
     )
 
     # Запитуємо stop_1 -> stop_3, але stop_3 не в trip
-    response = client.get(f"/journeys?from_stop={stop_1.id}&to_stop={stop_3.id}")
+    response = client.get(f"/api/v1/journeys?from_stop={stop_1.id}&to_stop={stop_3.id}")
 
     assert response.status_code == 200
     assert response.json() == []
@@ -181,7 +181,7 @@ def test_no_journey_when_stops_in_reverse_order(
     )
 
     # Запитуємо stop_2 -> stop_1 (у зворотному напрямку)
-    response = client.get(f"/journeys?from_stop={stop_2.id}&to_stop={stop_1.id}")
+    response = client.get(f"/api/v1/journeys?from_stop={stop_2.id}&to_stop={stop_1.id}")
 
     assert response.status_code == 200
     assert response.json() == []
@@ -221,7 +221,7 @@ def test_journeys_pagination(
         )
 
     response = client.get(
-        f"/journeys?from_stop={stop_1.id}&to_stop={stop_2.id}&page=2&page_size=2"
+        f"/api/v1/journeys?from_stop={stop_1.id}&to_stop={stop_2.id}&page=2&page_size=2"
     )
 
     assert response.status_code == 200

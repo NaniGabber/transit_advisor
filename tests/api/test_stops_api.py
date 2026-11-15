@@ -44,7 +44,7 @@ def test_get_departures_returns_departures(
 
     assert stop.id is not None
     response = client.get(
-        f"/stops/{stop.id}/departures",
+        f"/api/v1/stops/{stop.id}/departures",
         params={"from": "00:00"},
     )
 
@@ -64,7 +64,7 @@ def test_get_departures_filters_by_from_time(
 
     assert stop.id is not None
     response = client.get(
-        f"/stops/{stop.id}/departures",
+        f"/api/v1/stops/{stop.id}/departures",
         params={"from": "08:00"},
     )
 
@@ -84,7 +84,7 @@ def test_get_departures_returns_empty_when_no_match(
 
     assert stop.id is not None
     response = client.get(
-        f"/stops/{stop.id}/departures",
+        f"/api/v1/stops/{stop.id}/departures",
         params={"from": "23:00"},
     )
 
@@ -98,7 +98,7 @@ def test_get_departures_invalid_time_format_returns_422(
 ) -> None:
     assert stop.id is not None
     response = client.get(
-        f"/stops/{stop.id}/departures",
+        f"/api/v1/stops/{stop.id}/departures",
         params={"from": "not-a-time"},
     )
 
@@ -129,15 +129,15 @@ def test_get_departures_applies_pagination(
     assert stop.id is not None
 
     page1 = client.get(
-        f"/stops/{stop.id}/departures",
+        f"/api/v1/stops/{stop.id}/departures",
         params={"from": "00:00", "page": 1, "page_size": 2},
     )
     page2 = client.get(
-        f"/stops/{stop.id}/departures",
+        f"/api/v1/stops/{stop.id}/departures",
         params={"from": "00:00", "page": 2, "page_size": 2},
     )
     page3 = client.get(
-        f"/stops/{stop.id}/departures",
+        f"/api/v1/stops/{stop.id}/departures",
         params={"from": "00:00", "page": 3, "page_size": 2},
     )
 
@@ -156,7 +156,7 @@ def test_get_departures_page_size_exceeds_max_returns_422(
 ) -> None:
     assert stop.id is not None
     response = client.get(
-        f"/stops/{stop.id}/departures",
+        f"/api/v1/stops/{stop.id}/departures",
         params={"page_size": 101},
     )
     assert response.status_code == 422
@@ -168,7 +168,7 @@ def test_get_departures_page_less_than_one_returns_422(
 ) -> None:
     assert stop.id is not None
     response = client.get(
-        f"/stops/{stop.id}/departures",
+        f"/api/v1/stops/{stop.id}/departures",
         params={"page": 0},
     )
     assert response.status_code == 422
@@ -188,7 +188,7 @@ def test_get_departures_filters_by_stop(
 
     assert stop1.id is not None
     response = client.get(
-        f"/stops/{stop1.id}/departures",
+        f"/api/v1/stops/{stop1.id}/departures",
         params={"from": "00:00"},
     )
 
@@ -202,7 +202,7 @@ def test_get_departures_nonexistent_stop_returns_empty(
     client: TestClient,
 ) -> None:
     response = client.get(
-        "/stops/999999/departures",
+        "/api/v1/stops/999999/departures",
         params={"from": "00:00"},
     )
 
@@ -222,7 +222,7 @@ def test_get_departures_defaults_to_now(
     _save_stop_time(stoptime_repository, trip, stop, "23:59:00", "23:59:00", 2)
 
     assert stop.id is not None
-    response = client.get(f"/stops/{stop.id}/departures")
+    response = client.get(f"/api/v1/stops/{stop.id}/departures")
 
     assert response.status_code == 200
     assert isinstance(response.json(), list)

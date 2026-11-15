@@ -24,7 +24,7 @@ def test_search_routes_returns_all(
     route_factory("11")
     route_factory("15")
 
-    response = client.get("/routes")
+    response = client.get("/api/v1/routes")
 
     assert response.status_code == 200
     data = response.json()
@@ -38,7 +38,7 @@ def test_search_routes_by_query(
     route_factory("11")
     route_factory("15")
 
-    response = client.get("/routes?q=15")
+    response = client.get("/api/v1/routes?q=15")
 
     assert response.status_code == 200
     data = response.json()
@@ -49,7 +49,7 @@ def test_search_routes_by_query(
 def test_search_routes_returns_empty_for_unknown_query(
     client: TestClient,
 ) -> None:
-    response = client.get("/routes?q=nonexistent")
+    response = client.get("/api/v1/routes?q=nonexistent")
 
     assert response.status_code == 200
     assert response.json() == []
@@ -62,7 +62,7 @@ def test_search_routes_applies_pagination(
     for i in range(5):
         route_factory(f"route_{i}")
 
-    response = client.get("/routes?page=2&page_size=2")
+    response = client.get("/api/v1/routes?page=2&page_size=2")
 
     assert response.status_code == 200
     assert len(response.json()) == 2
@@ -125,7 +125,7 @@ def test_route_diff_returns_changes(
     )
 
     response = client.get(
-        f"/routes/{route.id}/diff?from_version={trip_1.schedule_version_id}&to_version={version_2.id}"
+        f"/api/v1/routes/{route.id}/diff?from_version={trip_1.schedule_version_id}&to_version={version_2.id}"
     )
 
     assert response.status_code == 200
@@ -138,7 +138,7 @@ def test_route_diff_returns_changes(
 def test_route_diff_returns_404_for_unknown_route(
     client: TestClient,
 ) -> None:
-    response = client.get("/routes/999/diff?from_version=1&to_version=2")
+    response = client.get("/api/v1/routes/999/diff?from_version=1&to_version=2")
 
     assert response.status_code == 404
     assert "not found" in response.json()["detail"].lower()

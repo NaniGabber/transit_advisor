@@ -11,7 +11,7 @@ def test_create_subscription(client: TestClient, route: Route) -> None:
     assert route.id is not None
 
     response = client.post(
-        "/subscriptions",
+        "/api/v1/subscriptions",
         headers={"X-Role": "user"},
         json={"user_id": 1, "route_id": route.id},
     )
@@ -35,13 +35,13 @@ def test_duplicate_subscription_returns_409(
     }
 
     first = client.post(
-        "/subscriptions",
+        "/api/v1/subscriptions",
         headers={"X-Role": "user"},
         json=payload,
     )
 
     second = client.post(
-        "/subscriptions",
+        "/api/v1/subscriptions",
         headers={"X-Role": "user"},
         json=payload,
     )
@@ -66,7 +66,7 @@ def test_get_user_subscriptions(
     )
 
     response = client.get(
-        "/subscriptions/users/1",
+        "/api/v1/subscriptions/users/1",
         headers={"X-Role": "user"},
     )
 
@@ -83,7 +83,7 @@ def test_get_empty_subscriptions(
     client: TestClient,
 ) -> None:
     response = client.get(
-        "/subscriptions/users/999",
+        "/api/v1/subscriptions/users/999",
     )
 
     assert response.status_code == 200
@@ -94,7 +94,7 @@ def test_create_subscription_with_invalid_payload(
     client: TestClient,
 ) -> None:
     response = client.post(
-        "/subscriptions",
+        "/api/v1/subscriptions",
         headers={"X-Role": "user"},
         json={
             "user_id": 1,

@@ -2,13 +2,13 @@ from fastapi.testclient import TestClient
 
 
 def test_guest_can_search_routes(client: TestClient) -> None:
-    response = client.get("/routes", headers={"X-Role": "guest"})
+    response = client.get("api/v1/routes", headers={"X-Role": "guest"})
     assert response.status_code == 200
 
 
 def test_guest_cannot_upload_feed(client: TestClient) -> None:
     response = client.post(
-        "/feeds",
+        "/api/v1/imports/gtfs",
         headers={"X-Role": "guest"},
         files={"file": ("feed.zip", b"", "application/zip")},
     )
@@ -17,7 +17,7 @@ def test_guest_cannot_upload_feed(client: TestClient) -> None:
 
 def test_guest_cannot_subscribe(client: TestClient) -> None:
     response = client.post(
-        "/subscriptions",
+        "api/v1/subscriptions",
         headers={"X-Role": "guest"},
         json={"user_id": 1, "route_id": 1},
     )
@@ -26,7 +26,7 @@ def test_guest_cannot_subscribe(client: TestClient) -> None:
 
 def test_user_cannot_upload_feed(client: TestClient) -> None:
     response = client.post(
-        "/feeds",
+        "/api/v1/imports/gtfs",
         headers={"X-Role": "user"},
         files={"file": ("feed.zip", b"", "application/zip")},
     )
@@ -35,7 +35,7 @@ def test_user_cannot_upload_feed(client: TestClient) -> None:
 
 def test_admin_can_upload_feed(client: TestClient) -> None:
     response = client.post(
-        "/feeds",
+        "/api/v1/imports/gtfs",
         headers={"X-Role": "admin"},
         files={"file": ("feed.zip", b"", "application/zip")},
     )
@@ -45,7 +45,7 @@ def test_admin_can_upload_feed(client: TestClient) -> None:
 
 def test_invalid_role_returns_400(client: TestClient) -> None:
     response = client.post(
-        "/feeds",
+        "/api/v1/imports/gtfs",
         headers={"X-Role": "superadmin"},
         files={"file": ("feed.zip", b"", "application/zip")},
     )

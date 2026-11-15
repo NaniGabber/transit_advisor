@@ -21,11 +21,11 @@ def test_openapi_schema_is_available() -> None:
     assert response.status_code == 200
     schema = response.json()
     assert "paths" in schema
-    assert "/feeds" in schema["paths"]
-    assert "/subscriptions" in schema["paths"]
-    assert "/notifications/users/{user_id}" in schema["paths"]
-    assert "/routes" in schema["paths"]
-    assert "/stops/{stop_id}/departures" in schema["paths"]
+    assert "/api/v1/imports/gtfs" in schema["paths"]
+    assert "/api/v1/subscriptions" in schema["paths"]
+    assert "/api/v1/notifications/users/{user_id}" in schema["paths"]
+    assert "/api/v1/routes" in schema["paths"]
+    assert "/api/v1/stops/{stop_id}/departures" in schema["paths"]
 
 
 def test_docs_endpoint_is_available() -> None:

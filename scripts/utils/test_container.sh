@@ -1,18 +1,29 @@
 #!/bin/sh
+
 set -e
+
+cleanup() {
+    docker compose down
+}
+
+trap cleanup EXIT
 
 docker compose up -d
 
 echo "Installing dependencies..."
-docker exec -it transit_advisor-api-1 pip install -e '.[dev]'
+docker compose exec api pip install -e ".[dev]"
+
+echo "Alembic migration..."
+docker compose exec api alembic upgrade head
+
 echo "Running Ruff..."
-docker exec -it transit_advisor-api-1 ruff check src tests scripts
+docker compose exec api ruff check src tests scripts
+
 echo "Running Mypy..."
-docker exec -it transit_advisor-api-1 mypy src tests scripts
+docker compose exec api mypy src tests scripts
+
 echo "Running Pytest..."
-docker exec -it transit_advisor-api-1 pytest -q
+docker compose exec api pytest -q
 
-echo "Running lint-import..."
-docker exec -it transit_advisor-api-1 lint-imports
-
-docker compose down
+echo "Running lint-imports..."
+docker compose exec api lint-imports

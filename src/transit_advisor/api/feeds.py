@@ -43,7 +43,7 @@ def upload_feed(
 ) -> UploadFeedResponse:
     if not file.filename or not file.filename.endswith(".zip"):
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail="File must be a .zip archive.",
         )
 
@@ -57,7 +57,7 @@ def upload_feed(
                 pass
         except zipfile.BadZipFile as exc:
             raise HTTPException(
-                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
                 detail="File is not a valid zip archive.",
             ) from exc
 
@@ -66,7 +66,7 @@ def upload_feed(
 
         if not result.imported and not result.duplicate:
             raise HTTPException(
-                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
                 detail="Feed validation failed. Missing required GTFS files.",
             )
 

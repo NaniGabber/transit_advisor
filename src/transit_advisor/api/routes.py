@@ -1,6 +1,6 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 
 from transit_advisor.api.dependencies import (
     get_route_repository,
@@ -35,7 +35,9 @@ def get_route_diff(
             to_version_id=to_version,
         )
     except ValueError as exc:
-        raise HTTPException(status_code=404, detail=str(exc)) from exc
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)
+        ) from exc
 
     return RouteDiffResponse(
         from_version=from_version,

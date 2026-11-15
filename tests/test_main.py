@@ -1,8 +1,9 @@
+from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
 
 def test_app_is_created(
-    app,
+    app: FastAPI,
 ) -> None:
     assert app is not None
     assert app.title == "FastAPI"

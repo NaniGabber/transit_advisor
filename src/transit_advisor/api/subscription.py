@@ -15,7 +15,7 @@ from transit_advisor.domain.exceptions import (
 from transit_advisor.services.subscription_service import SubscriptionService
 
 router = APIRouter(
-    prefix="/subscriptions",
+    prefix="/api/v1/subscriptions",
     tags=["subscriptions"],
 )
 

@@ -479,3 +479,6 @@ class FakeSubscriptionRepository:
 
     def delete(self, subscription_id: int) -> None:
         self.saved = [s for s in self.saved if s.id != subscription_id]
+
+    def find_all(self) -> list[Subscription]:
+        return list(self.saved)

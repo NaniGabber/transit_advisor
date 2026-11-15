@@ -10,7 +10,7 @@ from transit_advisor.infrastructure.repositories.notification import (
 )
 
 router = APIRouter(
-    prefix="/notifications",
+    prefix="/api/v1/notifications",
     tags=["notifications"],
 )
 

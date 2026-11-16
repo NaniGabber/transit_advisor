@@ -23,6 +23,7 @@ from tests.services.fake_repos import (
     FakeTripRepository,
 )
 from transit_advisor.api.analytics import router as analytics_router
+from transit_advisor.api.database_transfer import router as database_transfer_router
 from transit_advisor.api.dependencies import (
     get_feed_upload_service,
     get_notification_repository,
@@ -337,6 +338,7 @@ def app(
     app.include_router(notifications_router)
     app.include_router(journeys_router)
     app.include_router(analytics_router)
+    app.include_router(database_transfer_router)
     app.include_router(routes_router)
     app.include_router(stops_router)
 

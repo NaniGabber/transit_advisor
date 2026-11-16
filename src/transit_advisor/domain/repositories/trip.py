@@ -28,3 +28,7 @@ class TripRepository(Protocol):
         self,
         schedule_version_id: int,
     ) -> list[Trip]: ...
+
+    def find_by_trip_id_and_version(
+        self, trip_id: str, schedule_version_id: int
+    ) -> Trip | None: ...

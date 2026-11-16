@@ -43,6 +43,23 @@ class SqlAlchemyTripRepository:
 
         return self._to_domain(trip_model)
 
+    def find_by_trip_id_and_version(
+        self,
+        trip_id: str,
+        schedule_version_id: int,
+    ) -> Trip | None:
+        statement = select(TripModel).where(
+            TripModel.trip_id == trip_id,
+            TripModel.schedule_version_id == schedule_version_id,
+        )
+
+        trip_model = self._session.scalar(statement)
+
+        if trip_model is None:
+            return None
+
+        return self._to_domain(trip_model)
+
     def find_by_trip_ids(self, trip_ids: list[str]) -> dict[str, Trip]:
         if not trip_ids:
             return {}

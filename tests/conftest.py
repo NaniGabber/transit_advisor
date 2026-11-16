@@ -10,11 +10,10 @@ from pathlib import Path
 import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
-from sqlalchemy import create_engine, text
+from sqlalchemy import Engine, create_engine, text
 from sqlalchemy.orm import Session, sessionmaker
 
 from tests.services.fake_repos import (
-    FakeGtfsImportService,
     FakeNotificationRepository,
     FakeRouteRepository,
     FakeStopTimeRepository,
@@ -71,6 +70,7 @@ from transit_advisor.services.analytics_service import AnalyticsService
 from transit_advisor.services.checksum_service import ChecksumService
 from transit_advisor.services.feed_upload_service import FeedUploadService
 from transit_advisor.services.feed_validation_service import FeedValidator
+from transit_advisor.services.gtfs_import_service import GtfsImportService
 from transit_advisor.services.journey_service import JourneyService
 from transit_advisor.services.notification_service import NotificationService
 from transit_advisor.services.schedule_diff_service import ScheduleDiffService
@@ -126,8 +126,38 @@ def test_database() -> Generator[str, None, None]:
         os.environ["DATABASE_URL"] = old_database_url
 
 
+@pytest.fixture
+def engine(test_database: str) -> Generator[Engine, None, None]:
+    eng = create_engine(test_database)
+    try:
+        yield eng
+    finally:
+        eng.dispose()
+
+
+@pytest.fixture
+def session_factory(engine: Engine) -> sessionmaker[Session]:
+    return sessionmaker(
+        bind=engine,
+        autoflush=False,
+        autocommit=False,
+        expire_on_commit=False,
+    )
+
+
+@pytest.fixture
+def session(session_factory: sessionmaker[Session]) -> Generator[Session, None, None]:
+    session = session_factory()
+
+    try:
+        yield session
+    finally:
+        session.rollback()
+        session.close()
+
+
 @pytest.fixture(autouse=True)
-def cleanup_database(session: Session):
+def cleanup_database(session: Session) -> Generator[None, None, None]:
     yield
 
     session.execute(
@@ -148,28 +178,6 @@ def cleanup_database(session: Session):
     )
 
     session.commit()
-
-
-@pytest.fixture
-def session(
-    test_database: str,
-) -> Generator[Session, None, None]:
-    engine = create_engine(test_database)
-
-    SessionLocal = sessionmaker(
-        bind=engine,
-        autoflush=False,
-        autocommit=False,
-    )
-
-    session = SessionLocal()
-
-    try:
-        yield session
-    finally:
-        session.rollback()
-        session.close()
-        engine.dispose()
 
 
 @pytest.fixture
@@ -280,6 +288,11 @@ def make_zip(files: dict[str, bytes]) -> bytes:
 @pytest.fixture
 def feed_upload_service(
     schedule_version_repository: SqlAlchemyScheduleVersionRepository,
+    agency_repository: SqlAlchemyAgencyRepository,
+    route_repository: SqlAlchemyRouteRepository,
+    stop_repository: SqlAlchemyStopRepository,
+    trip_repository: SqlAlchemyTripRepository,
+    stoptime_repository: SqlAlchemyStopTimeRepository,
 ) -> FeedUploadService:
     return FeedUploadService(
         validator=FeedValidator(),
@@ -288,7 +301,13 @@ def feed_upload_service(
             repository=schedule_version_repository,
         ),
         archive_reader=GtfsArchiveReader(),
-        import_service=FakeGtfsImportService(),
+        import_service=GtfsImportService(
+            agency_repository=agency_repository,
+            route_repository=route_repository,
+            stop_repository=stop_repository,
+            trip_repository=trip_repository,
+            stoptime_repository=stoptime_repository,
+        ),
     )
 
 
@@ -312,8 +331,16 @@ def app(
     app.include_router(routes_router)
     app.include_router(stops_router)
 
+    def override_get_session() -> Generator[Session, None, None]:
+        try:
+            yield session
+            session.commit()
+        except Exception:
+            session.rollback()
+            raise
+
     app.dependency_overrides[get_feed_upload_service] = lambda: feed_upload_service
-    app.dependency_overrides[get_session] = lambda: session
+    app.dependency_overrides[get_session] = override_get_session
     app.dependency_overrides[get_schedule_update_service] = lambda: (
         schedule_update_service
     )
@@ -326,6 +353,54 @@ def client(
     app: FastAPI,
 ) -> Generator[TestClient, None, None]:
     with TestClient(app) as client:
+        yield client
+
+
+@pytest.fixture
+def parallel_app(
+    session_factory: sessionmaker[Session],
+) -> Generator[FastAPI, None, None]:
+    app = FastAPI()
+    app.include_router(feeds_router)
+
+    def override_get_session() -> Generator[Session, None, None]:
+        new_session = session_factory()
+        try:
+            yield new_session
+            new_session.commit()
+        except Exception:
+            new_session.rollback()
+            raise
+        finally:
+            new_session.close()
+
+    def override_get_feed_upload_service() -> FeedUploadService:
+        session = session_factory()
+        return FeedUploadService(
+            validator=FeedValidator(),
+            checksum_service=ChecksumService(),
+            schedule_version_service=ScheduleVersionService(
+                SqlAlchemyScheduleVersionRepository(session),
+            ),
+            archive_reader=GtfsArchiveReader(),
+            import_service=GtfsImportService(
+                agency_repository=SqlAlchemyAgencyRepository(session),
+                route_repository=SqlAlchemyRouteRepository(session),
+                stop_repository=SqlAlchemyStopRepository(session),
+                trip_repository=SqlAlchemyTripRepository(session),
+                stoptime_repository=SqlAlchemyStopTimeRepository(session),
+            ),
+        )
+
+    app.dependency_overrides[get_session] = override_get_session
+    app.dependency_overrides[get_feed_upload_service] = override_get_feed_upload_service
+    yield app
+    app.dependency_overrides.clear()
+
+
+@pytest.fixture
+def parallel_client(parallel_app: FastAPI) -> Generator[TestClient, None, None]:
+    with TestClient(parallel_app) as client:
         yield client
 
 

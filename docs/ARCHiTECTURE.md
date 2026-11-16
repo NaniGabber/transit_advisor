@@ -89,6 +89,7 @@ StopTimeRepository
 ScheduleVersionRepository
 SubscriptionRepository
 NotificationRepository
+DatabaseTransferRepository
 ```
 
 Application services depend on these contracts rather than infrastructure implementations.
@@ -122,6 +123,7 @@ ScheduleDiffService
 SubscriptionService
 NotificationService
 ScheduleUpdateService
+DatabaseTransferService
 ```
 
 ### Responsibilities
@@ -137,6 +139,7 @@ ScheduleUpdateService
 | SubscriptionService | Subscription management |
 | NotificationService | Notification creation |
 | ScheduleUpdateService | Processing schedule changes and generating notifications |
+| DatabaseTransferService | Versioned export and transactional restore of application data |
 
 ---
 
@@ -164,6 +167,7 @@ SqlAlchemyStopTimeRepository
 SqlAlchemyScheduleVersionRepository
 SqlAlchemySubscriptionRepository
 SqlAlchemyNotificationRepository
+SqlAlchemyDatabaseTransferRepository
 ```
 
 ### Archive Processing

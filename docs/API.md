@@ -22,7 +22,7 @@ The API uses a simple `X-Role` header (for course project purposes):
 |------|-------------|
 | `guest` (default) | Read-only access: search routes, view departures, compare versions, view analytics. |
 | `user` | Can create subscriptions and view notifications. |
-| `admin` | Can upload GTFS feeds and create subscriptions. |
+| `admin` | Can upload GTFS feeds, create subscriptions, and export or import database snapshots. |
 
 Example:
 
@@ -68,6 +68,51 @@ Uploads a GTFS archive. **Requires `X-Role: admin`.**
 - `403 Forbidden` — role is not `admin`.
 - `422 Unprocessable Content` — the file is not a ZIP archive or does not contain the required GTFS files.
 - `409 Conflict` — an archive with the same `checksum` has already been imported.
+
+---
+
+## Database Transfer API
+
+Database transfer endpoints require `X-Role: admin`. Snapshots are versioned JSON files containing the application's eight data tables; they do not contain the PostgreSQL schema or migration history.
+
+### `GET /api/v1/admin/database/export`
+
+Downloads a snapshot as an `application/json` attachment.
+
+### `POST /api/v1/admin/database/import`
+
+Imports a snapshot from `multipart/form-data` with fields `file` and `confirm=true`. Import replaces the contents of all application tables in a single transaction. If validation or insertion fails, the transaction is rolled back. Uploads are limited to 100 MiB.
+
+```bash
+curl -X POST http://localhost:8000/api/v1/admin/database/import \
+  -H "X-Role: admin" \
+  -F "confirm=true" \
+  -F "file=@transit-database.json"
+```
+
+**Response (200 OK):**
+
+```json
+{
+  "imported": {
+    "agencies": 1,
+    "routes": 4,
+    "stops": 20,
+    "trips": 10,
+    "stop_times": 100,
+    "schedule_versions": 2,
+    "subscriptions": 3,
+    "notifications": 2
+  }
+}
+```
+
+**Errors:**
+
+- `400 Bad Request` — `confirm` is not `true`.
+- `403 Forbidden` — role is not `admin`.
+- `413 Content Too Large` — snapshot exceeds 100 MiB.
+- `422 Unprocessable Content` — snapshot format or table data is invalid.
 
 ---
 

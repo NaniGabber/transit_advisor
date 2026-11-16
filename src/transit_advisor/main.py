@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 
 from transit_advisor.api.analytics import router as analytics_router
+from transit_advisor.api.database_transfer import router as database_transfer_router
 from transit_advisor.api.feeds import (
     router as feeds_router,
 )
@@ -50,4 +51,8 @@ app.include_router(
 
 app.include_router(
     analytics_router,
+)
+
+app.include_router(
+    database_transfer_router,
 )

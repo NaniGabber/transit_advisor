@@ -25,3 +25,6 @@ class ScheduleVersionService:
             )
         except DuplicateScheduleVersionError:
             return None
+
+    def find_latest(self) -> ScheduleVersion | None:
+        return self._repository.find_latest()

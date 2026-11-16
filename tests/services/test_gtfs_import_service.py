@@ -527,7 +527,7 @@ def test_import_stop_times_returns_imported_count() -> None:
         }
     ]
 
-    stats = container.service.import_stoptimes(iter(rows))
+    stats = container.service.import_stoptimes(iter(rows), schedule_version_id=1)
 
     assert stats.imported == 1
     assert stats.rejected == 0
@@ -546,7 +546,7 @@ def test_import_stop_times_saves_valid_stop_time() -> None:
         }
     ]
 
-    container.service.import_stoptimes(iter(rows))
+    container.service.import_stoptimes(iter(rows), schedule_version_id=1)
 
     assert len(container.stoptime_repository.saved) == 1
 
@@ -564,7 +564,7 @@ def test_import_stop_times_skips_unknown_trip() -> None:
         }
     ]
 
-    stats = container.service.import_stoptimes(iter(rows))
+    stats = container.service.import_stoptimes(iter(rows), schedule_version_id=1)
 
     assert stats.imported == 0
     assert stats.rejected == 1
@@ -584,7 +584,7 @@ def test_import_stop_times_skips_unknown_stop() -> None:
         }
     ]
 
-    stats = container.service.import_stoptimes(iter(rows))
+    stats = container.service.import_stoptimes(iter(rows), schedule_version_id=1)
 
     assert stats.imported == 0
     assert stats.rejected == 1
@@ -604,7 +604,7 @@ def test_import_stop_times_skips_invalid_row() -> None:
         }
     ]
 
-    stats = container.service.import_stoptimes(iter(rows))
+    stats = container.service.import_stoptimes(iter(rows), schedule_version_id=1)
 
     assert stats.imported == 0
     assert stats.rejected == 1

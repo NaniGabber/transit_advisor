@@ -293,6 +293,7 @@ def feed_upload_service(
     stop_repository: SqlAlchemyStopRepository,
     trip_repository: SqlAlchemyTripRepository,
     stoptime_repository: SqlAlchemyStopTimeRepository,
+    schedule_update_service: ScheduleUpdateService,
 ) -> FeedUploadService:
     return FeedUploadService(
         validator=FeedValidator(),
@@ -308,6 +309,7 @@ def feed_upload_service(
             trip_repository=trip_repository,
             stoptime_repository=stoptime_repository,
         ),
+        schedule_update_service=schedule_update_service,
     )
 
 

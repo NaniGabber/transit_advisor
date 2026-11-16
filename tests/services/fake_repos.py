@@ -309,13 +309,17 @@ class FakeScheduleVersionRepository:
 
 class FakeGtfsArchiveReader(GtfsArchiveReader):
     def __init__(self, files: set[str] | None = None) -> None:
-        self._files = files or {
-            "agency.txt",
-            "routes.txt",
-            "stops.txt",
-            "trips.txt",
-            "stop_times.txt",
-        }
+        self._files = (
+            files
+            if files is not None
+            else {
+                "agency.txt",
+                "routes.txt",
+                "stops.txt",
+                "trips.txt",
+                "stop_times.txt",
+            }
+        )
 
     def list_files(self, archive_path: Path) -> set[str]:
         return self._files

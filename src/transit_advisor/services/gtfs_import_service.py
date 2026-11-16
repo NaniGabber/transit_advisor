@@ -68,7 +68,8 @@ class GtfsImportService:
 
         if reader.exists(archive_path, "stop_times.txt"):
             stats["stop_times"] = self.import_stoptimes(
-                reader.read_csv(archive_path, "stop_times.txt")
+                reader.read_csv(archive_path, "stop_times.txt"),
+                schedule_version_id,
             )
 
         return stats
@@ -225,6 +226,7 @@ class GtfsImportService:
     def import_stoptimes(
         self,
         rows: Iterator[dict[str, str]],
+        schedule_version_id: int,
     ) -> ImportStats:
         imported = 0
         rejected = 0
@@ -239,7 +241,10 @@ class GtfsImportService:
 
             trip_id = trip_cache.get(gtfs_trip_id)
             if trip_id is None:
-                trip = self._trip_repository.find_by_trip_id(gtfs_trip_id)
+                trip = self._trip_repository.find_by_trip_id_and_version(
+                    gtfs_trip_id,
+                    schedule_version_id,
+                )
                 if trip is None or trip.id is None:
                     rejected += 1
                     continue

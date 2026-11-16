@@ -19,6 +19,7 @@ from transit_advisor.services.feed_upload_service import FeedUploadService
 from transit_advisor.services.feed_validation_service import FeedValidator
 from transit_advisor.services.gtfs_import_service import GtfsImportService
 from transit_advisor.services.notification_service import NotificationService
+from transit_advisor.services.schedule_update_service import ScheduleUpdateService
 from transit_advisor.services.schedule_version_service import ScheduleVersionService
 
 
@@ -149,6 +150,20 @@ class FakeTripRepository:
 
     def find_by_route_id(self, route_id: int) -> list[Trip]:
         return [t for t in self.saved if t.route_id == route_id]
+
+    def find_by_trip_id_and_version(
+        self,
+        trip_id: str,
+        schedule_version_id: int,
+    ) -> Trip | None:
+        return next(
+            (
+                t
+                for t in self.saved
+                if t.trip_id == trip_id and t.schedule_version_id == schedule_version_id
+            ),
+            None,
+        )
 
 
 class FakeStopTimeRepository:
@@ -286,6 +301,11 @@ class FakeScheduleVersionRepository:
                 return version
         return None
 
+    def find_latest(self) -> ScheduleVersion | None:
+        if not self.saved:
+            return None
+        return max(self.saved, key=lambda v: v.id or 0)
+
 
 class FakeGtfsArchiveReader(GtfsArchiveReader):
     def __init__(self, files: set[str] | None = None) -> None:
@@ -359,7 +379,11 @@ class FakeChecksumService(ChecksumService):
 
 
 class FakeFeedUploadContainer:
-    def __init__(self, files: set[str] | None = None) -> None:
+    def __init__(
+        self,
+        files: set[str] | None = None,
+        schedule_update_service: ScheduleUpdateService | None = None,
+    ) -> None:
         self.schedule_version_repository = FakeScheduleVersionRepository()
         self.archive_reader = FakeGtfsArchiveReader(files)
         self.import_service = FakeGtfsImportService()
@@ -369,6 +393,7 @@ class FakeFeedUploadContainer:
         self.schedule_version_service = ScheduleVersionService(
             self.schedule_version_repository,
         )
+        self.schedule_update_service = schedule_update_service
 
         self.service = FeedUploadService(
             validator=self.validator,
@@ -376,6 +401,7 @@ class FakeFeedUploadContainer:
             schedule_version_service=self.schedule_version_service,
             archive_reader=self.archive_reader,
             import_service=self.import_service,
+            schedule_update_service=schedule_update_service,
         )
 
 

@@ -47,3 +47,17 @@ class SqlAlchemyScheduleVersionRepository:
             checksum=model.checksum,
             imported_at=model.imported_at,
         )
+
+    def find_latest(self) -> ScheduleVersion | None:
+        statement = (
+            select(ScheduleVersionModel)
+            .order_by(ScheduleVersionModel.id.desc())
+            .limit(1)
+        )
+
+        model = self._session.scalar(statement)
+
+        if model is None:
+            return None
+
+        return self._to_domain(model)

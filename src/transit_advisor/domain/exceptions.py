@@ -2,6 +2,10 @@ class DomainError(Exception):
     """Generic error class"""
 
 
+class InvalidDatabaseSnapshotError(DomainError):
+    pass
+
+
 class RouteNotFoundError(DomainError):
     def __init__(self, route_id: int) -> None:
         self.route_id = route_id

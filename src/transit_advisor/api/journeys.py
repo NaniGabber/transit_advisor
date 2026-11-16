@@ -6,7 +6,7 @@ from transit_advisor.api.dependencies import get_journey_service
 from transit_advisor.api.schemas import JourneyResponse
 from transit_advisor.services.journey_service import JourneyService
 
-router = APIRouter(prefix="/journeys", tags=["journeys"])
+router = APIRouter(prefix="/api/v1/journeys", tags=["journeys"])
 
 
 @router.get(

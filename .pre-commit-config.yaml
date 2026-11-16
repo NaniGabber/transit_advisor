@@ -6,11 +6,15 @@ repos:
       - id: trailing-whitespace
       - id: check-yaml
       - id: check-json
+      - id: check-added-large-files
+      - id: check-merge-conflict
+      - id: debug-statements
 
   - repo: https://github.com/astral-sh/ruff-pre-commit
     rev: v0.13.0
     hooks:
       - id: ruff-check
+        args: [--fix]
       - id: ruff-format
 
   - repo: https://github.com/pre-commit/mirrors-mypy
@@ -22,3 +26,15 @@ repos:
           - fastapi
           - pydantic
           - sqlalchemy>=2.0
+          - types-requests
+        args: [--config-file=pyproject.toml]
+
+
+  - repo: local
+    hooks:
+      - id: import-linter
+        name: Check architecture boundaries
+        entry: lint-imports
+        language: system
+        pass_filenames: false
+        always_run: true

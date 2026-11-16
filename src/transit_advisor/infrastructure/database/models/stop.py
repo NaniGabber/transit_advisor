@@ -1,5 +1,5 @@
 from sqlalchemy import Float, String
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from transit_advisor.infrastructure.database.base import Base
 
@@ -22,3 +22,5 @@ class StopModel(Base):
 
     code: Mapped[str | None]
     description: Mapped[str | None]
+
+    stop_times = relationship("StopTimeModel", back_populates="stop")

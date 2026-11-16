@@ -30,9 +30,11 @@ Current entities:
 - StopTime
 - ScheduleVersion
 
-`Trip` is linked to `ScheduleVersion` via `Trip.schedule_version_id`.
+`Trip` is linked to `ScheduleVersion` via `Trip.schedule_version_id` and `Trip.service_id`.
 `StopTime` inherits the version through `Trip`.
 `Agency`, `Route`, and `Stop` remain reference data.
+
+`Trip.trip_id` is unique **per schedule version** (`uq_trip_version`), not globally.
 
 ### Limitation
 
@@ -80,9 +82,7 @@ See ADR-002 for the decision to keep them as reference data.
 
 - added routes;
 - removed routes;
-- changed stop times (arrival/departure);
-- added stops;
-- removed stops.
+- changed stop times (arrival/departure).
 
 Two paths are available:
 
@@ -104,30 +104,23 @@ stable domain-level trip identifier.
 
 ## Feed Import Transactions
 
-### Status: PARTIAL
+### Status: DONE
 
 ### Current State
 
 Repositories use `flush()` instead of `commit()` in `save()` methods.
 
-`FeedUploadService.upload(...)` does not yet wrap "create version + import +
-process update" in a single transaction.
+`POST /feeds` wraps the entire import in `with session.begin()`, ensuring that
+a failure rolls back all changes (version creation, import, and notifications).
 
 ### Limitation
 
-A failure during import may leave partially imported data inside the database
-if the service does not roll back.
+None for the current scope.
 
 ### Future Refactoring
 
-Use a Unit of Work pattern or application-level transactions for the complete
-import process.
-
-Benefits:
-
-- atomic imports;
-- consistent rollback behaviour;
-- simplified error recovery.
+If more complex workflows are added, consider a Unit of Work pattern to
+centralize transaction boundaries.
 
 ---
 
@@ -168,46 +161,50 @@ for:
 
 ## User Management
 
-### Status: DEFERRED
+### Status: PARTIAL
 
 ### Current State
 
 Subscriptions are associated with a numeric user identifier.
 
+Role-based access control is implemented via the `X-Role` header (`guest`, `user`, `admin`).
+
 ### Limitation
 
-Authentication and authorization are not implemented.
+Authentication and authorization are not implemented (no JWT, no passwords).
 
 ### Future Refactoring
 
 Introduce:
 
 - User entity;
-- Roles;
-- Authentication;
+- Authentication (JWT or OAuth2);
 - Authorization policies.
 
-Out of scope for the current iteration; the numeric `user_id` is sufficient
+Out of scope for the current iteration; the numeric `user_id` and `X-Role` header are sufficient
 for subscription and notification flows.
 
 ---
 
 ## Analytics
 
-### Status: PLANNED
+### Status: DONE
 
 ### Current State
 
-Analytical reports are not implemented.
+The following analytical endpoints are implemented:
+
+- `GET /analytics/routes/{id}/trips-by-day` — trips grouped by `service_id`.
+- `GET /analytics/routes/{id}/headway` — average headway in minutes.
+- `GET /analytics/stops/top` — top stops by number of routes.
+
+### Limitation
+
+Analytics are computed for the **latest** schedule version only.
 
 ### Future Refactoring
 
-Add:
-
-- route frequency statistics by day of week;
-- peak-hour interval analysis;
-- busiest stops;
-- route popularity metrics.
+Add support for querying analytics for a specific `version_id` (e.g. `?version_id=2`).
 
 ---
 
@@ -270,6 +267,7 @@ faster isolation.
 - `GET /routes` supports `q` (query), `stop` (stop filter), `page`, `page_size`.
 - `GET /stops/{id}/departures` supports `from` (time filter), `page`, `page_size`.
 - `GET /routes/{id}/diff` supports `from_version`, `to_version`.
+- `GET /journeys` supports `from_stop`, `to_stop`, `page`, `page_size`.
 
 ### Limitation
 
@@ -278,6 +276,29 @@ Pagination is offset-based, which may become slow for very large datasets.
 ### Future Refactoring
 
 Switch to cursor-based pagination (keyset pagination) for large tables.
+
+---
+
+## Architecture Enforcement
+
+### Status: DONE
+
+### Current State
+
+`import-linter` contracts are defined in `pyproject.toml` to enforce Clean Architecture boundaries:
+
+- `api` → `services` → `domain`
+- `domain` must not import `infrastructure`, `api`, or `services`.
+- `services` must not import `api`.
+- `infrastructure` must not import `api`.
+
+### Limitation
+
+None for the current scope.
+
+### Future Refactoring
+
+If new layers are added (e.g. `application`), update the contracts accordingly.
 
 ---
 
@@ -290,10 +311,11 @@ Future refactoring efforts should focus primarily on:
 1. Full schedule version support (**PARTIAL** — `Trip`/`StopTime` done,
    `Route`/`Stop`/`Agency` deferred, see ADR-002).
 2. Timetable-level change detection (**DONE** — by GTFS `trip_id`).
-3. Transaction management (**PARTIAL** — `flush()` in repositories,
-   application-level transaction pending).
+3. Transaction management (**DONE** — `session.begin()` in `POST /feeds`).
 4. Structured logging (**PLANNED**).
-5. Analytical features (**PLANNED**).
+5. Analytical features (**DONE** — trips-by-day, headway, top stops).
 6. Test database isolation (**PARTIAL** — SAVEPOINT used, but `create_all`
    still slow).
 7. API search and pagination (**DONE** — offset-based, cursor-based planned).
+8. Architecture enforcement (**DONE** — `import-linter`).
+9. Authentication and authorization (**PARTIAL** — `X-Role` header, no JWT).

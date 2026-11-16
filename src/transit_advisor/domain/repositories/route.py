@@ -9,10 +9,20 @@ class RouteRepository(Protocol):
         route: Route,
     ) -> Route: ...
 
+    def save_all(
+        self,
+        routes: list[Route],
+    ) -> list[Route]: ...
+
     def find_by_route_id(
         self,
         route_id: str,
     ) -> Route | None: ...
+
+    def find_by_route_ids(
+        self,
+        route_ids: list[str],
+    ) -> dict[str, Route]: ...
 
     def find_by_id(self, route_id: int) -> Route | None: ...
 

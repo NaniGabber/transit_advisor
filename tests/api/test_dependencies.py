@@ -109,8 +109,12 @@ def test_get_notification_service(session: Session) -> None:
 
 
 def test_get_subscription_service(session: Session) -> None:
-    repository = get_subscription_repository(session)
-    service = get_subscription_service(repository)
+    subscription_repository = get_subscription_repository(session)
+    route_repository = get_route_repository(session)
+    service = get_subscription_service(
+        repository=subscription_repository,
+        route_repository=route_repository,
+    )
     assert isinstance(service, SubscriptionService)
 
 
@@ -150,5 +154,6 @@ def test_get_feed_upload_service(session: Session) -> None:
             trip_repository=get_trip_repository(session),
             stoptime_repository=get_stoptime_repository(session),
         ),
+        schedule_update_service=get_schedule_update_service(session),
     )
     assert isinstance(service, FeedUploadService)

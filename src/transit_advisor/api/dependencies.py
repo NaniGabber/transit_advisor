@@ -54,6 +54,9 @@ def get_session() -> Generator[Session, None, None]:
     session = SessionLocal()
     try:
         yield session
+    except Exception:
+        session.rollback()
+        raise
     finally:
         session.close()
 
@@ -148,7 +151,7 @@ def get_schedule_version_service(
 
 
 def get_schedule_update_service(
-    session: Session = Depends(get_session),
+    session: Annotated[Session, Depends(get_session)],
 ) -> ScheduleUpdateService:
     return ScheduleUpdateService(
         diff_service=ScheduleDiffService(),
@@ -173,6 +176,10 @@ def get_feed_upload_service(
         GtfsImportService,
         Depends(get_gtfs_import_service),
     ],
+    schedule_update_service: Annotated[
+        ScheduleUpdateService,
+        Depends(get_schedule_update_service),
+    ],
 ) -> FeedUploadService:
     return FeedUploadService(
         validator=validator,
@@ -180,6 +187,7 @@ def get_feed_upload_service(
         schedule_version_service=schedule_version_service,
         archive_reader=GtfsArchiveReader(),
         import_service=import_service,
+        schedule_update_service=schedule_update_service,
     )
 
 
@@ -224,9 +232,14 @@ def get_subscription_service(
         SqlAlchemySubscriptionRepository,
         Depends(get_subscription_repository),
     ],
+    route_repository: Annotated[
+        SqlAlchemyRouteRepository,
+        Depends(get_route_repository),
+    ],
 ) -> SubscriptionService:
     return SubscriptionService(
-        repository,
+        repository=repository,
+        route_repository=route_repository,
     )
 
 

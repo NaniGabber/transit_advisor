@@ -5,10 +5,6 @@ WORKDIR /app
 COPY pyproject.toml README.md ./
 COPY src ./src
 
-RUN pip install --no-cache-dir .
+RUN pip install -e .
 
-COPY . .
-
-EXPOSE 8000
-
-CMD ["uvicorn", "transit_advisor.main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["uvicorn", "transit_advisor.main:app", "--host", "0.0.0.0", "--reload"]

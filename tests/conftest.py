@@ -1,19 +1,21 @@
 import io
 import os
+import subprocess
+import sys
+import uuid
 import zipfile
 from collections.abc import Callable, Generator
 from datetime import datetime
 from pathlib import Path
 
 import pytest
-from dotenv import load_dotenv
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
-from sqlalchemy import create_engine
+from sqlalchemy import Engine, create_engine, text
+from sqlalchemy.engine import make_url
 from sqlalchemy.orm import Session, sessionmaker
 
 from tests.services.fake_repos import (
-    FakeGtfsImportService,
     FakeNotificationRepository,
     FakeRouteRepository,
     FakeStopTimeRepository,
@@ -24,11 +26,14 @@ from transit_advisor.api.analytics import router as analytics_router
 from transit_advisor.api.dependencies import (
     get_feed_upload_service,
     get_notification_repository,
+    get_schedule_update_service,
     get_session,
 )
 from transit_advisor.api.feeds import router as feeds_router
 from transit_advisor.api.journeys import router as journeys_router
 from transit_advisor.api.notification import router as notifications_router
+from transit_advisor.api.routes import router as routes_router
+from transit_advisor.api.stops import router as stops_router
 from transit_advisor.api.subscription import router as subscriptions_router
 from transit_advisor.domain.agency import Agency
 from transit_advisor.domain.route import Route
@@ -38,7 +43,6 @@ from transit_advisor.domain.subscription import Subscription
 from transit_advisor.domain.trip import Trip
 from transit_advisor.infrastructure.archive.gtfs_archive_reader import GtfsArchiveReader
 from transit_advisor.infrastructure.database import models  # noqa: F401
-from transit_advisor.infrastructure.database.base import Base
 from transit_advisor.infrastructure.repositories.agency import (
     SqlAlchemyAgencyRepository,
 )
@@ -68,30 +72,89 @@ from transit_advisor.services.analytics_service import AnalyticsService
 from transit_advisor.services.checksum_service import ChecksumService
 from transit_advisor.services.feed_upload_service import FeedUploadService
 from transit_advisor.services.feed_validation_service import FeedValidator
+from transit_advisor.services.gtfs_import_service import GtfsImportService
 from transit_advisor.services.journey_service import JourneyService
 from transit_advisor.services.notification_service import NotificationService
 from transit_advisor.services.schedule_diff_service import ScheduleDiffService
 from transit_advisor.services.schedule_update_service import ScheduleUpdateService
 from transit_advisor.services.schedule_version_service import ScheduleVersionService
 
-load_dotenv()
 
-DATABASE_URL = os.environ["DATABASE_URL"]
+@pytest.fixture(scope="session", autouse=True)
+def test_database() -> Generator[str, None, None]:
+    db_name = f"transit_test_{uuid.uuid4().hex[:8]}"
+    configured_url = make_url(
+        os.environ.get(
+            "DATABASE_URL",
+            "postgresql+psycopg://postgres:postgres@localhost:5432/transit",
+        )
+    )
+    admin_url = configured_url.set(database="postgres")
+    database_url = configured_url.set(database=db_name)
+    database_url_string = database_url.render_as_string(hide_password=False)
 
-engine = create_engine(DATABASE_URL)
+    admin_engine = create_engine(
+        admin_url,
+        isolation_level="AUTOCOMMIT",
+    )
 
-TestSessionLocal = sessionmaker(
-    bind=engine,
-    autoflush=False,
-    autocommit=False,
-)
+    with admin_engine.connect() as conn:
+        conn.execute(text(f'CREATE DATABASE "{db_name}"'))
+
+    old_database_url = os.environ.get("DATABASE_URL")
+
+    os.environ["DATABASE_URL"] = database_url_string
+
+    subprocess.run(
+        [sys.executable, "-m", "alembic", "upgrade", "head"],
+        check=True,
+        env=os.environ.copy(),
+    )
+
+    yield database_url_string
+
+    with admin_engine.connect() as conn:
+        conn.execute(
+            text(
+                """
+                SELECT pg_terminate_backend(pid)
+                FROM pg_stat_activity
+                WHERE datname = :dbname
+                """
+            ),
+            {"dbname": db_name},
+        )
+
+        conn.execute(text(f'DROP DATABASE IF EXISTS "{db_name}"'))
+
+    admin_engine.dispose()
+
+    if old_database_url:
+        os.environ["DATABASE_URL"] = old_database_url
 
 
 @pytest.fixture
-def session() -> Generator[Session, None, None]:
-    Base.metadata.create_all(bind=engine)
+def engine(test_database: str) -> Generator[Engine, None, None]:
+    eng = create_engine(test_database)
+    try:
+        yield eng
+    finally:
+        eng.dispose()
 
-    session = TestSessionLocal()
+
+@pytest.fixture
+def session_factory(engine: Engine) -> sessionmaker[Session]:
+    return sessionmaker(
+        bind=engine,
+        autoflush=False,
+        autocommit=False,
+        expire_on_commit=False,
+    )
+
+
+@pytest.fixture
+def session(session_factory: sessionmaker[Session]) -> Generator[Session, None, None]:
+    session = session_factory()
 
     try:
         yield session
@@ -99,7 +162,29 @@ def session() -> Generator[Session, None, None]:
         session.rollback()
         session.close()
 
-        Base.metadata.drop_all(bind=engine)
+
+@pytest.fixture(autouse=True)
+def cleanup_database(session: Session) -> Generator[None, None, None]:
+    yield
+
+    session.execute(
+        text(
+            """
+            TRUNCATE TABLE
+                notifications,
+                subscriptions,
+                stop_times,
+                trips,
+                routes,
+                stops,
+                agencies,
+                schedule_versions
+            RESTART IDENTITY CASCADE
+            """
+        )
+    )
+
+    session.commit()
 
 
 @pytest.fixture
@@ -183,6 +268,7 @@ def trip_factory(
                 route_id=route_id,
                 trip_id=trip_id,
                 schedule_version_id=schedule_version.id,
+                service_id="WEEKDAY",
             )
         )
 
@@ -209,6 +295,12 @@ def make_zip(files: dict[str, bytes]) -> bytes:
 @pytest.fixture
 def feed_upload_service(
     schedule_version_repository: SqlAlchemyScheduleVersionRepository,
+    agency_repository: SqlAlchemyAgencyRepository,
+    route_repository: SqlAlchemyRouteRepository,
+    stop_repository: SqlAlchemyStopRepository,
+    trip_repository: SqlAlchemyTripRepository,
+    stoptime_repository: SqlAlchemyStopTimeRepository,
+    schedule_update_service: ScheduleUpdateService,
 ) -> FeedUploadService:
     return FeedUploadService(
         validator=FeedValidator(),
@@ -217,7 +309,14 @@ def feed_upload_service(
             repository=schedule_version_repository,
         ),
         archive_reader=GtfsArchiveReader(),
-        import_service=FakeGtfsImportService(),
+        import_service=GtfsImportService(
+            agency_repository=agency_repository,
+            route_repository=route_repository,
+            stop_repository=stop_repository,
+            trip_repository=trip_repository,
+            stoptime_repository=stoptime_repository,
+        ),
+        schedule_update_service=schedule_update_service,
     )
 
 
@@ -225,24 +324,93 @@ def feed_upload_service(
 def app(
     session: Session,
     feed_upload_service: FeedUploadService,
+    schedule_update_service: ScheduleUpdateService,
 ) -> Generator[FastAPI, None, None]:
     app = FastAPI()
+
+    @app.get("/")
+    def root() -> dict[str, str]:
+        return {"status": "ok"}
+
     app.include_router(feeds_router)
     app.include_router(subscriptions_router)
     app.include_router(notifications_router)
     app.include_router(journeys_router)
     app.include_router(analytics_router)
+    app.include_router(routes_router)
+    app.include_router(stops_router)
+
+    def override_get_session() -> Generator[Session, None, None]:
+        try:
+            yield session
+            session.commit()
+        except Exception:
+            session.rollback()
+            raise
 
     app.dependency_overrides[get_feed_upload_service] = lambda: feed_upload_service
-    app.dependency_overrides[get_session] = lambda: session
-
+    app.dependency_overrides[get_session] = override_get_session
+    app.dependency_overrides[get_schedule_update_service] = lambda: (
+        schedule_update_service
+    )
     yield app
     app.dependency_overrides.clear()
 
 
 @pytest.fixture
-def client(app: FastAPI) -> TestClient:
-    return TestClient(app)
+def client(
+    app: FastAPI,
+) -> Generator[TestClient, None, None]:
+    with TestClient(app) as client:
+        yield client
+
+
+@pytest.fixture
+def parallel_app(
+    session_factory: sessionmaker[Session],
+) -> Generator[FastAPI, None, None]:
+    app = FastAPI()
+    app.include_router(feeds_router)
+
+    def override_get_session() -> Generator[Session, None, None]:
+        new_session = session_factory()
+        try:
+            yield new_session
+            new_session.commit()
+        except Exception:
+            new_session.rollback()
+            raise
+        finally:
+            new_session.close()
+
+    def override_get_feed_upload_service() -> FeedUploadService:
+        session = session_factory()
+        return FeedUploadService(
+            validator=FeedValidator(),
+            checksum_service=ChecksumService(),
+            schedule_version_service=ScheduleVersionService(
+                SqlAlchemyScheduleVersionRepository(session),
+            ),
+            archive_reader=GtfsArchiveReader(),
+            import_service=GtfsImportService(
+                agency_repository=SqlAlchemyAgencyRepository(session),
+                route_repository=SqlAlchemyRouteRepository(session),
+                stop_repository=SqlAlchemyStopRepository(session),
+                trip_repository=SqlAlchemyTripRepository(session),
+                stoptime_repository=SqlAlchemyStopTimeRepository(session),
+            ),
+        )
+
+    app.dependency_overrides[get_session] = override_get_session
+    app.dependency_overrides[get_feed_upload_service] = override_get_feed_upload_service
+    yield app
+    app.dependency_overrides.clear()
+
+
+@pytest.fixture
+def parallel_client(parallel_app: FastAPI) -> Generator[TestClient, None, None]:
+    with TestClient(parallel_app) as client:
+        yield client
 
 
 @pytest.fixture
@@ -432,7 +600,7 @@ def notification_service(
 
 
 @pytest.fixture
-def schedule_update_service(
+def fake_schedule_update_service(
     notification_service: NotificationService,
     fake_subscription_repository: FakeSubscriptionRepository,
     fake_route_repository: FakeRouteRepository,
@@ -446,6 +614,22 @@ def schedule_update_service(
         route_repository=fake_route_repository,
         trip_repository=fake_trip_repository,
         stoptime_repository=fake_stoptime_repository,
+    )
+
+
+@pytest.fixture
+def schedule_update_service(
+    session: Session,
+) -> ScheduleUpdateService:
+    return ScheduleUpdateService(
+        diff_service=ScheduleDiffService(),
+        notification_service=NotificationService(
+            SqlAlchemyNotificationRepository(session),
+        ),
+        subscription_repository=SqlAlchemySubscriptionRepository(session),
+        route_repository=SqlAlchemyRouteRepository(session),
+        trip_repository=SqlAlchemyTripRepository(session),
+        stoptime_repository=SqlAlchemyStopTimeRepository(session),
     )
 
 

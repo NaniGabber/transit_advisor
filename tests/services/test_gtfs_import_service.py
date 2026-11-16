@@ -1,10 +1,12 @@
+from pathlib import Path
+
 from transit_advisor.domain.agency import Agency
 from transit_advisor.domain.route import Route
 from transit_advisor.domain.stop import Stop
 from transit_advisor.domain.trip import Trip
-from transit_advisor.services.gtfs_import_service import GtfsImportService
+from transit_advisor.services.gtfs_import_service import BATCH_SIZE, GtfsImportService
 
-from .fake_repos import FakeContainer, get_service
+from .fake_repos import FakeContainer, FakeGtfsArchiveReader, get_service
 
 
 def test_import_agencies_returns_imported_count() -> None:
@@ -57,6 +59,33 @@ def test_import_agencies_skips_invalid_rows() -> None:
     assert stats.imported == 0
     assert stats.rejected == 1
     assert len(container.agency_repository.saved) == 0
+
+
+def test_import_all_imports_every_file_in_archive() -> None:
+    service = get_service().service
+
+    stats = service.import_all(
+        Path("feed.zip"),
+        FakeGtfsArchiveReader(),
+        schedule_version_id=1,
+    )
+
+    assert set(stats) == {"agencies", "routes", "stops", "trips", "stop_times"}
+    assert all(
+        result.imported == 0 and result.rejected == 0 for result in stats.values()
+    )
+
+
+def test_import_all_returns_empty_stats_when_archive_has_no_files() -> None:
+    service = get_service().service
+
+    stats = service.import_all(
+        Path("feed.zip"),
+        FakeGtfsArchiveReader(files=set()),
+        schedule_version_id=1,
+    )
+
+    assert stats == {}
 
 
 def _get_service_with_agency() -> GtfsImportService:
@@ -527,7 +556,7 @@ def test_import_stop_times_returns_imported_count() -> None:
         }
     ]
 
-    stats = container.service.import_stoptimes(iter(rows))
+    stats = container.service.import_stoptimes(iter(rows), schedule_version_id=1)
 
     assert stats.imported == 1
     assert stats.rejected == 0
@@ -546,7 +575,7 @@ def test_import_stop_times_saves_valid_stop_time() -> None:
         }
     ]
 
-    container.service.import_stoptimes(iter(rows))
+    container.service.import_stoptimes(iter(rows), schedule_version_id=1)
 
     assert len(container.stoptime_repository.saved) == 1
 
@@ -564,7 +593,7 @@ def test_import_stop_times_skips_unknown_trip() -> None:
         }
     ]
 
-    stats = container.service.import_stoptimes(iter(rows))
+    stats = container.service.import_stoptimes(iter(rows), schedule_version_id=1)
 
     assert stats.imported == 0
     assert stats.rejected == 1
@@ -584,7 +613,7 @@ def test_import_stop_times_skips_unknown_stop() -> None:
         }
     ]
 
-    stats = container.service.import_stoptimes(iter(rows))
+    stats = container.service.import_stoptimes(iter(rows), schedule_version_id=1)
 
     assert stats.imported == 0
     assert stats.rejected == 1
@@ -604,8 +633,151 @@ def test_import_stop_times_skips_invalid_row() -> None:
         }
     ]
 
-    stats = container.service.import_stoptimes(iter(rows))
+    stats = container.service.import_stoptimes(iter(rows), schedule_version_id=1)
 
     assert stats.imported == 0
     assert stats.rejected == 1
     assert len(container.stoptime_repository.saved) == 0
+
+
+def test_import_existing_agency_route_and_stop_does_not_create_duplicates() -> None:
+    container = get_service()
+    agency = container.agency_repository.save(
+        Agency(
+            id=None,
+            agency_id="metro",
+            name="Kharkiv Metro",
+            timezone="Europe/Kyiv",
+        )
+    )
+    assert agency.id is not None
+    container.route_repository.save(
+        Route(
+            id=None,
+            agency_id=agency.id,
+            route_id="11",
+            short_name="11",
+            long_name="Railway Station",
+            route_type=3,
+        )
+    )
+    container.stop_repository.save(
+        Stop(
+            id=None,
+            stop_id="S1",
+            name="Railway Station",
+            latitude=49.989,
+            longitude=36.230,
+        )
+    )
+
+    agency_stats = container.service.import_agencies(
+        iter(
+            [
+                {
+                    "agency_id": "metro",
+                    "agency_name": "Kharkiv Metro",
+                    "agency_timezone": "Europe/Kyiv",
+                }
+            ]
+        )
+    )
+    route_stats = container.service.import_routes(
+        iter(
+            [
+                {
+                    "agency_id": "metro",
+                    "route_id": "11",
+                    "route_short_name": "11",
+                    "route_long_name": "Railway Station",
+                    "route_type": "3",
+                }
+            ]
+        )
+    )
+    stop_stats = container.service.import_stops(
+        iter(
+            [
+                {
+                    "stop_id": "S1",
+                    "stop_name": "Railway Station",
+                    "stop_lat": "49.989",
+                    "stop_lon": "36.230",
+                }
+            ]
+        )
+    )
+
+    assert agency_stats.imported == route_stats.imported == stop_stats.imported == 1
+    assert agency_stats.rejected == route_stats.rejected == stop_stats.rejected == 0
+    assert len(container.agency_repository.saved) == 1
+    assert len(container.route_repository.saved) == 1
+    assert len(container.stop_repository.saved) == 1
+
+
+def test_importers_flush_full_batches_and_save_remaining_rows() -> None:
+    container = _get_service_with_trip_and_stop()
+    service = container.service
+    row_count = BATCH_SIZE + 1
+
+    stats = [
+        service.import_agencies(
+            iter(
+                {
+                    "agency_id": f"agency_{index}",
+                    "agency_name": f"Agency {index}",
+                    "agency_timezone": "Europe/Kyiv",
+                }
+                for index in range(row_count)
+            )
+        ),
+        service.import_routes(
+            iter(
+                {
+                    "agency_id": "metro",
+                    "route_id": f"batch_route_{index}",
+                    "route_short_name": str(index),
+                    "route_long_name": f"Route {index}",
+                    "route_type": "3",
+                }
+                for index in range(row_count)
+            )
+        ),
+        service.import_stops(
+            iter(
+                {
+                    "stop_id": f"batch_stop_{index}",
+                    "stop_name": f"Stop {index}",
+                    "stop_lat": "49.989",
+                    "stop_lon": "36.230",
+                }
+                for index in range(row_count)
+            )
+        ),
+        service.import_trips(
+            iter(
+                {
+                    "route_id": "11",
+                    "trip_id": f"batch_trip_{index}",
+                    "trip_headsign": f"Destination {index}",
+                }
+                for index in range(row_count)
+            ),
+            schedule_version_id=1,
+        ),
+        service.import_stoptimes(
+            iter(
+                {
+                    "trip_id": "trip_1",
+                    "stop_id": "stop_1",
+                    "arrival_time": "08:00:00",
+                    "departure_time": "08:01:00",
+                    "stop_sequence": str(index + 1),
+                }
+                for index in range(row_count)
+            ),
+            schedule_version_id=1,
+        ),
+    ]
+
+    assert all(stats.imported == row_count and stats.rejected == 0 for stats in stats)

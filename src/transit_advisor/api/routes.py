@@ -1,6 +1,6 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 
 from transit_advisor.api.dependencies import (
     get_route_repository,
@@ -12,7 +12,7 @@ from transit_advisor.infrastructure.repositories.route import (
 )
 from transit_advisor.services.schedule_update_service import ScheduleUpdateService
 
-router = APIRouter(prefix="/routes", tags=["routes"])
+router = APIRouter(prefix="/api/v1/routes", tags=["routes"])
 
 
 @router.get(
@@ -21,9 +21,12 @@ router = APIRouter(prefix="/routes", tags=["routes"])
 )
 def get_route_diff(
     route_id: int,
-    from_version: int = Query(..., alias="from_version"),
-    to_version: int = Query(..., alias="to_version"),
-    service: ScheduleUpdateService = Depends(get_schedule_update_service),
+    from_version: Annotated[int, Query(alias="from_version")],
+    to_version: Annotated[int, Query(alias="to_version")],
+    service: Annotated[
+        ScheduleUpdateService,
+        Depends(get_schedule_update_service),
+    ],
 ) -> RouteDiffResponse:
     try:
         diff = service.compare_route_versions(
@@ -32,7 +35,9 @@ def get_route_diff(
             to_version_id=to_version,
         )
     except ValueError as exc:
-        raise HTTPException(status_code=404, detail=str(exc)) from exc
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)
+        ) from exc
 
     return RouteDiffResponse(
         from_version=from_version,
@@ -41,9 +46,6 @@ def get_route_diff(
         removed_routes=diff.removed_routes,
         changed_stop_times=diff.changed_stop_times,
     )
-
-
-router = APIRouter(prefix="/routes", tags=["routes"])
 
 
 @router.get(

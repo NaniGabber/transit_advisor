@@ -34,7 +34,7 @@ def test_get_notifications(
         ]
     )
 
-    response = client.get("/notifications/users/42")
+    response = client.get("/api/v1/notifications/users/42")
 
     assert response.status_code == 200
     data = response.json()
@@ -55,7 +55,7 @@ def test_get_unread_notifications(
         ]
     )
 
-    response = client.get("/notifications/users/42/unread")
+    response = client.get("/api/v1/notifications/users/42/unread")
 
     assert response.status_code == 200
     data = response.json()
@@ -72,7 +72,7 @@ def test_returns_empty_list_for_unknown_user(
         _make_notification(1, user_id=42, is_read=False)
     )
 
-    response = client.get("/notifications/users/999")
+    response = client.get("/api/v1/notifications/users/999")
 
     assert response.status_code == 200
     assert response.json() == []

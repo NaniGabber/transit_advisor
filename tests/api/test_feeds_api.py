@@ -16,21 +16,12 @@ def _gtfs_zip() -> bytes:
     )
 
 
-def test_upload_imports_new_feed(
-    client: TestClient,
-    session: Session,
-) -> None:
+def test_upload_imports_new_feed(client: TestClient, session: Session) -> None:
     response = client.post(
-        "/feeds",
-        files={
-            "file": (
-                "feed.zip",
-                _gtfs_zip(),
-                "application/zip",
-            ),
-        },
+        "/api/v1/imports/gtfs",
+        headers={"X-Role": "admin"},
+        files={"file": ("feed.zip", _gtfs_zip(), "application/zip")},
     )
-
     assert response.status_code == 201
 
     body = response.json()
@@ -44,27 +35,22 @@ def test_upload_duplicate_returns_409(
     client: TestClient,
     session: Session,
 ) -> None:
+    content = _gtfs_zip()  # ← один раз
+
     client.post(
-        "/feeds",
-        files={
-            "file": (
-                "feed.zip",
-                _gtfs_zip(),
-                "application/zip",
-            ),
-        },
+        "/api/v1/imports/gtfs",
+        headers={"X-Role": "admin"},
+        files={"file": ("feed.zip", content, "application/zip")},
     )
 
     response = client.post(
-        "/feeds",
-        files={
-            "file": (
-                "feed.zip",
-                _gtfs_zip(),
-                "application/zip",
-            ),
-        },
+        "/api/v1/imports/gtfs",
+        headers={"X-Role": "admin"},
+        files={"file": ("feed.zip", content, "application/zip")},
     )
+
+    assert response.status_code == 409
+    assert "already exists" in response.json()["detail"]
 
     assert response.status_code == 409
     assert "already exists" in response.json()["detail"]
@@ -75,7 +61,8 @@ def test_upload_invalid_feed_returns_422(
     session: Session,
 ) -> None:
     response = client.post(
-        "/feeds",
+        "/api/v1/imports/gtfs",
+        headers={"X-Role": "admin"},
         files={
             "file": (
                 "feed.zip",
@@ -98,7 +85,8 @@ def test_upload_non_zip_file_returns_422(
     session: Session,
 ) -> None:
     response = client.post(
-        "/feeds",
+        "/api/v1/imports/gtfs",
+        headers={"X-Role": "admin"},
         files={
             "file": (
                 "feed.zip",

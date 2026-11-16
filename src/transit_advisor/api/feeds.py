@@ -7,22 +7,25 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, status
 from sqlalchemy.orm import Session
 
+from transit_advisor.api.auth import Role, require_role
 from transit_advisor.api.dependencies import get_feed_upload_service, get_session
 from transit_advisor.api.schemas import ImportStatsResponse, UploadFeedResponse
 from transit_advisor.domain.upload_result import UploadResult
 from transit_advisor.services.feed_upload_service import FeedUploadService
 
 router = APIRouter(
-    prefix="/feeds",
-    tags=["feeds"],
+    prefix="/api/v1/imports",
+    tags=["imports"],
 )
 
 
 @router.post(
-    "",
+    "/gtfs",
     response_model=UploadFeedResponse,
     status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(require_role(Role.ADMIN))],
     responses={
+        403: {"description": "Only admin can upload feeds."},
         409: {"description": "Feed with this checksum already exists."},
         422: {"description": "Invalid GTFS archive or not a zip file."},
     },
@@ -78,7 +81,10 @@ def upload_feed(
             imported=result.imported,
             duplicate=result.duplicate,
             stats={
-                key: ImportStatsResponse(imported=stat.imported, rejected=stat.rejected)
+                key: ImportStatsResponse(
+                    imported=stat.imported,
+                    rejected=stat.rejected,
+                )
                 for key, stat in result.stats.items()
             },
         )

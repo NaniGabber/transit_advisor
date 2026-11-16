@@ -1,9 +1,10 @@
 from collections.abc import Iterator
 from dataclasses import replace
-from datetime import time
+from datetime import datetime, time
 from pathlib import Path
 
 from transit_advisor.domain.agency import Agency
+from transit_advisor.domain.exceptions import AlreadySubscribedError
 from transit_advisor.domain.notification import Notification
 from transit_advisor.domain.route import Route
 from transit_advisor.domain.scheduleversion import ScheduleVersion
@@ -18,6 +19,7 @@ from transit_advisor.services.feed_upload_service import FeedUploadService
 from transit_advisor.services.feed_validation_service import FeedValidator
 from transit_advisor.services.gtfs_import_service import GtfsImportService
 from transit_advisor.services.notification_service import NotificationService
+from transit_advisor.services.schedule_update_service import ScheduleUpdateService
 from transit_advisor.services.schedule_version_service import ScheduleVersionService
 
 
@@ -27,15 +29,21 @@ class FakeAgencyRepository:
 
     def save(self, agency: Agency) -> Agency:
         if agency.id is None:
-            agency.id = len(self.saved) + 1
+            agency = replace(agency, id=len(self.saved) + 1)
         self.saved.append(agency)
         return agency
+
+    def save_all(self, agencies: list[Agency]) -> list[Agency]:
+        return [self.save(a) for a in agencies]
 
     def find_by_agency_id(self, agency_id: str) -> Agency | None:
         for agency in self.saved:
             if agency.agency_id == agency_id:
                 return agency
         return None
+
+    def find_by_agency_ids(self, agency_ids: list[str]) -> dict[str, Agency]:
+        return {a.agency_id: a for a in self.saved if a.agency_id in agency_ids}
 
 
 class FakeRouteRepository:
@@ -44,15 +52,24 @@ class FakeRouteRepository:
 
     def save(self, route: Route) -> Route:
         if route.id is None:
-            route.id = len(self.saved) + 1
+            route = replace(route, id=len(self.saved) + 1)
         self.saved.append(route)
         return route
+
+    def save_all(self, routes: list[Route]) -> list[Route]:
+        return [self.save(r) for r in routes]
 
     def find_by_route_id(self, route_id: str) -> Route | None:
         for route in self.saved:
             if route.route_id == route_id:
                 return route
         return None
+
+    def find_by_route_ids(self, route_ids: list[str]) -> dict[str, Route]:
+        return {r.route_id: r for r in self.saved if r.route_id in route_ids}
+
+    def find_by_id(self, route_id: int) -> Route | None:
+        return next((r for r in self.saved if r.id == route_id), None)
 
     def search(
         self,
@@ -76,14 +93,9 @@ class FakeRouteRepository:
         if stop_id is not None:
             # У фейку немає зв'язку Trip/StopTime, тому цей фільтр
             # не може бути реалістично перевірений без додаткових даних.
-            # Для юніт-тестів зазвичай повертаємо порожній список,
-            # якщо не передано спеціальний мапінг.
             results = []
 
         return results[offset : offset + limit]
-
-    def find_by_id(self, route_id: int) -> Route | None:
-        return next((r for r in self.saved if r.id == route_id), None)
 
 
 class FakeStopRepository:
@@ -92,15 +104,21 @@ class FakeStopRepository:
 
     def save(self, stop: Stop) -> Stop:
         if stop.id is None:
-            stop.id = len(self.saved) + 1
+            stop = replace(stop, id=len(self.saved) + 1)
         self.saved.append(stop)
         return stop
+
+    def save_all(self, stops: list[Stop]) -> list[Stop]:
+        return [self.save(s) for s in stops]
 
     def find_by_stop_id(self, stop_id: str) -> Stop | None:
         for stop in self.saved:
             if stop.stop_id == stop_id:
                 return stop
         return None
+
+    def find_by_stop_ids(self, stop_ids: list[str]) -> dict[str, Stop]:
+        return {s.stop_id: s for s in self.saved if s.stop_id in stop_ids}
 
 
 class FakeTripRepository:
@@ -115,8 +133,14 @@ class FakeTripRepository:
         self.saved.append(trip)
         return trip
 
+    def save_all(self, trips: list[Trip]) -> list[Trip]:
+        return [self.save(t) for t in trips]
+
     def find_by_trip_id(self, trip_id: str) -> Trip | None:
         return next((t for t in self.saved if t.trip_id == trip_id), None)
+
+    def find_by_trip_ids(self, trip_ids: list[str]) -> dict[str, Trip]:
+        return {t.trip_id: t for t in self.saved if t.trip_id in trip_ids}
 
     def find_by_schedule_version_id(
         self,
@@ -126,6 +150,20 @@ class FakeTripRepository:
 
     def find_by_route_id(self, route_id: int) -> list[Trip]:
         return [t for t in self.saved if t.route_id == route_id]
+
+    def find_by_trip_id_and_version(
+        self,
+        trip_id: str,
+        schedule_version_id: int,
+    ) -> Trip | None:
+        return next(
+            (
+                t
+                for t in self.saved
+                if t.trip_id == trip_id and t.schedule_version_id == schedule_version_id
+            ),
+            None,
+        )
 
 
 class FakeStopTimeRepository:
@@ -146,14 +184,26 @@ class FakeStopTimeRepository:
         self._next_id += 1
         return saved
 
+    def save_all(self, stop_times: list[StopTime]) -> list[StopTime]:
+        return [self.save(st) for st in stop_times]
+
     def find_by_trip_id(self, trip_id: int) -> list[StopTime]:
-        return [st for st in self.saved if st.trip_id == trip_id]
+        return sorted(
+            (st for st in self.saved if st.trip_id == trip_id),
+            key=lambda st: st.stop_sequence,
+        )
 
     def find_by_trip_ids(self, trip_ids: list[int]) -> list[StopTime]:
-        return [st for st in self.saved if st.trip_id in trip_ids]
+        return sorted(
+            (st for st in self.saved if st.trip_id in trip_ids),
+            key=lambda st: (st.trip_id, st.stop_sequence),
+        )
 
     def find_by_stop_id(self, stop_id: int) -> list[StopTime]:
-        return [st for st in self.saved if st.stop_id == stop_id]
+        return sorted(
+            (st for st in self.saved if st.stop_id == stop_id),
+            key=lambda st: st.arrival_time,
+        )
 
     def find_by_route_id_and_version(
         self,
@@ -185,18 +235,20 @@ class FakeStopTimeRepository:
         self,
         from_stop_id: int,
         to_stop_id: int,
-        limit: int = 20,
+        schedule_version_id: int | None = None,
+        from_time: time | None = None,
+        limit: int = 100,
         offset: int = 0,
     ) -> list[tuple[StopTime, StopTime]]:
+        """schedule_version_id приймається для сумісності з Protocol,
+        але ігнорується: fake не знає про версії розкладу."""
         results: list[tuple[StopTime, StopTime]] = []
 
-        # Групуємо StopTime за trip_id
         trips: dict[int, list[StopTime]] = {}
-        for st in self.saved:
-            trips.setdefault(st.trip_id, []).append(st)
+        for stop_time in self.saved:
+            trips.setdefault(stop_time.trip_id, []).append(stop_time)
 
         for trip_stop_times in trips.values():
-            # Сортуємо за stop_sequence
             trip_stop_times.sort(key=lambda st: st.stop_sequence)
 
             from_st = next(
@@ -210,9 +262,16 @@ class FakeStopTimeRepository:
 
             if from_st is None or to_st is None:
                 continue
-
             if from_st.stop_sequence >= to_st.stop_sequence:
                 continue
+
+            if from_time is not None:
+                departure_time = datetime.strptime(
+                    from_st.departure_time,
+                    "%H:%M:%S",
+                ).time()
+                if departure_time < from_time:
+                    continue
 
             results.append((from_st, to_st))
 
@@ -229,10 +288,8 @@ class FakeScheduleVersionRepository:
         version: ScheduleVersion,
     ) -> ScheduleVersion:
         if version.id is None:
-            version.id = len(self.saved) + 1
-
+            version = replace(version, id=len(self.saved) + 1)
         self.saved.append(version)
-
         return version
 
     def find_by_checksum(
@@ -242,19 +299,27 @@ class FakeScheduleVersionRepository:
         for version in self.saved:
             if version.checksum == checksum:
                 return version
-
         return None
+
+    def find_latest(self) -> ScheduleVersion | None:
+        if not self.saved:
+            return None
+        return max(self.saved, key=lambda v: v.id or 0)
 
 
 class FakeGtfsArchiveReader(GtfsArchiveReader):
     def __init__(self, files: set[str] | None = None) -> None:
-        self._files = files or {
-            "agency.txt",
-            "routes.txt",
-            "stops.txt",
-            "trips.txt",
-            "stop_times.txt",
-        }
+        self._files = (
+            files
+            if files is not None
+            else {
+                "agency.txt",
+                "routes.txt",
+                "stops.txt",
+                "trips.txt",
+                "stop_times.txt",
+            }
+        )
 
     def list_files(self, archive_path: Path) -> set[str]:
         return self._files
@@ -268,6 +333,13 @@ class FakeGtfsArchiveReader(GtfsArchiveReader):
 
 class FakeGtfsImportService(GtfsImportService):
     def __init__(self) -> None:
+        super().__init__(
+            agency_repository=FakeAgencyRepository(),
+            route_repository=FakeRouteRepository(),
+            stop_repository=FakeStopRepository(),
+            trip_repository=FakeTripRepository(),
+            stoptime_repository=FakeStopTimeRepository(),
+        )
         self.imported_count = 0
         self.last_schedule_version_id: int | None = None
 
@@ -311,23 +383,29 @@ class FakeChecksumService(ChecksumService):
 
 
 class FakeFeedUploadContainer:
-    def __init__(self, files: set[str] | None = None) -> None:
+    def __init__(
+        self,
+        files: set[str] | None = None,
+        schedule_update_service: ScheduleUpdateService | None = None,
+    ) -> None:
         self.schedule_version_repository = FakeScheduleVersionRepository()
         self.archive_reader = FakeGtfsArchiveReader(files)
         self.import_service = FakeGtfsImportService()
-        self.checksum_service = FakeChecksumService()  # <-- Додано
+        self.checksum_service = FakeChecksumService()
 
         self.validator = FeedValidator()
         self.schedule_version_service = ScheduleVersionService(
             self.schedule_version_repository,
         )
+        self.schedule_update_service = schedule_update_service
 
         self.service = FeedUploadService(
             validator=self.validator,
-            checksum_service=self.checksum_service,  # <-- Використовуємо фейк
+            checksum_service=self.checksum_service,
             schedule_version_service=self.schedule_version_service,
             archive_reader=self.archive_reader,
             import_service=self.import_service,
+            schedule_update_service=schedule_update_service,
         )
 
 
@@ -335,7 +413,9 @@ def get_service() -> FakeContainer:
     return FakeContainer()
 
 
-def get_feed_upload_service(files: set[str] | None = None) -> FakeFeedUploadContainer:
+def get_feed_upload_service(
+    files: set[str] | None = None,
+) -> FakeFeedUploadContainer:
     return FakeFeedUploadContainer(files)
 
 
@@ -348,10 +428,8 @@ class FakeNotificationRepository:
         notification: Notification,
     ) -> Notification:
         if notification.id is None:
-            notification.id = len(self.saved) + 1
-
+            notification = replace(notification, id=len(self.saved) + 1)
         self.saved.append(notification)
-
         return notification
 
     def find_by_user_id(
@@ -391,34 +469,46 @@ def get_notification_service() -> FakeNotificationContainer:
 class FakeSubscriptionRepository:
     def __init__(self) -> None:
         self.saved: list[Subscription] = []
+        self._next_id = 1
 
-    def save(
-        self,
-        subscription: Subscription,
-    ) -> Subscription:
+    def save(self, subscription: Subscription) -> Subscription:
         if subscription.id is None:
-            subscription.id = len(self.saved) + 1
-
+            existing = self.find_by_user_and_route(
+                subscription.user_id, subscription.route_id
+            )
+            if existing is not None:
+                raise AlreadySubscribedError(
+                    subscription.user_id, subscription.route_id
+                )
+            subscription = replace(subscription, id=self._next_id)
+            self._next_id += 1
         self.saved.append(subscription)
-
         return subscription
 
-    def find_by_route_id(
-        self,
-        route_id: int,
-    ) -> list[Subscription]:
-        return [
-            subscription
-            for subscription in self.saved
-            if subscription.route_id == route_id
-        ]
+    def find_by_id(self, subscription_id: int) -> Subscription | None:
+        return next(
+            (s for s in self.saved if s.id == subscription_id),
+            None,
+        )
 
-    def find_by_user_id(
+    def find_by_user_id(self, user_id: int) -> list[Subscription]:
+        return [s for s in self.saved if s.user_id == user_id]
+
+    def find_by_route_id(self, route_id: int) -> list[Subscription]:
+        return [s for s in self.saved if s.route_id == route_id]
+
+    def find_by_user_and_route(
         self,
         user_id: int,
-    ) -> list[Subscription]:
-        return [
-            subscription
-            for subscription in self.saved
-            if subscription.user_id == user_id
-        ]
+        route_id: int,
+    ) -> Subscription | None:
+        return next(
+            (s for s in self.saved if s.user_id == user_id and s.route_id == route_id),
+            None,
+        )
+
+    def delete(self, subscription_id: int) -> None:
+        self.saved = [s for s in self.saved if s.id != subscription_id]
+
+    def find_all(self) -> list[Subscription]:
+        return list(self.saved)

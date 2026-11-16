@@ -1,6 +1,7 @@
 import io
 import os
 import subprocess
+import sys
 import uuid
 import zipfile
 from collections.abc import Callable, Generator
@@ -11,6 +12,7 @@ import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 from sqlalchemy import Engine, create_engine, text
+from sqlalchemy.engine import make_url
 from sqlalchemy.orm import Session, sessionmaker
 
 from tests.services.fake_repos import (
@@ -80,11 +82,16 @@ from transit_advisor.services.schedule_version_service import ScheduleVersionSer
 
 @pytest.fixture(scope="session", autouse=True)
 def test_database() -> Generator[str, None, None]:
-    admin_url = "postgresql+psycopg://postgres:postgres@db:5432/postgres"
-
     db_name = f"transit_test_{uuid.uuid4().hex[:8]}"
-
-    database_url = f"postgresql+psycopg://postgres:postgres@db:5432/{db_name}"
+    configured_url = make_url(
+        os.environ.get(
+            "DATABASE_URL",
+            "postgresql+psycopg://postgres:postgres@localhost:5432/transit",
+        )
+    )
+    admin_url = configured_url.set(database="postgres")
+    database_url = configured_url.set(database=db_name)
+    database_url_string = database_url.render_as_string(hide_password=False)
 
     admin_engine = create_engine(
         admin_url,
@@ -96,15 +103,15 @@ def test_database() -> Generator[str, None, None]:
 
     old_database_url = os.environ.get("DATABASE_URL")
 
-    os.environ["DATABASE_URL"] = database_url
+    os.environ["DATABASE_URL"] = database_url_string
 
     subprocess.run(
-        ["alembic", "upgrade", "head"],
+        [sys.executable, "-m", "alembic", "upgrade", "head"],
         check=True,
         env=os.environ.copy(),
     )
 
-    yield database_url
+    yield database_url_string
 
     with admin_engine.connect() as conn:
         conn.execute(

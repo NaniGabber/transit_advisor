@@ -7,6 +7,7 @@ from transit_advisor.infrastructure.archive.gtfs_archive_reader import (
 from transit_advisor.services.checksum_service import ChecksumService
 from transit_advisor.services.feed_validation_service import FeedValidator
 from transit_advisor.services.gtfs_import_service import GtfsImportService
+from transit_advisor.services.schedule_update_service import ScheduleUpdateService
 from transit_advisor.services.schedule_version_service import ScheduleVersionService
 
 
@@ -18,12 +19,14 @@ class FeedUploadService:
         schedule_version_service: ScheduleVersionService,
         archive_reader: GtfsArchiveReader,
         import_service: GtfsImportService,
+        schedule_update_service: ScheduleUpdateService | None = None,
     ) -> None:
         self._validator = validator
         self._checksum_service = checksum_service
         self._schedule_version_service = schedule_version_service
         self._archive_reader = archive_reader
         self._import_service = import_service
+        self._schedule_update_service = schedule_update_service
 
     def upload(self, archive_path: Path) -> UploadResult:
         archive_files = self._archive_reader.list_files(archive_path)
@@ -32,6 +35,9 @@ class FeedUploadService:
             return UploadResult(imported=False, duplicate=False, checksum="")
 
         checksum = self._checksum_service.calculate_from_file(archive_path)
+
+        previous_version = self._schedule_version_service.find_latest()
+        old_version_id = previous_version.id if previous_version else None
 
         version = self._schedule_version_service.create_version(checksum)
         if version is None:
@@ -45,6 +51,13 @@ class FeedUploadService:
             self._archive_reader,
             schedule_version_id=version.id,
         )
+
+        if self._schedule_update_service is not None and old_version_id is not None:
+            self._schedule_update_service.process_version_update(
+                old_version_id=old_version_id,
+                new_version_id=version.id,
+                schedule_version_id=version.id,
+            )
 
         return UploadResult(
             imported=True,

@@ -154,5 +154,6 @@ def test_get_feed_upload_service(session: Session) -> None:
             trip_repository=get_trip_repository(session),
             stoptime_repository=get_stoptime_repository(session),
         ),
+        schedule_update_service=get_schedule_update_service(session),
     )
     assert isinstance(service, FeedUploadService)

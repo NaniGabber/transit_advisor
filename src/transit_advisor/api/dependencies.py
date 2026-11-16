@@ -176,6 +176,10 @@ def get_feed_upload_service(
         GtfsImportService,
         Depends(get_gtfs_import_service),
     ],
+    schedule_update_service: Annotated[
+        ScheduleUpdateService,
+        Depends(get_schedule_update_service),
+    ],
 ) -> FeedUploadService:
     return FeedUploadService(
         validator=validator,
@@ -183,6 +187,7 @@ def get_feed_upload_service(
         schedule_version_service=schedule_version_service,
         archive_reader=GtfsArchiveReader(),
         import_service=import_service,
+        schedule_update_service=schedule_update_service,
     )
 
 

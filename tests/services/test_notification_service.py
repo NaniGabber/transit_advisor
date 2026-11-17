@@ -1,4 +1,7 @@
+import logging
 from datetime import datetime
+
+import pytest
 
 from tests.services.fake_repos import (
     FakeNotificationRepository,
@@ -16,13 +19,18 @@ from transit_advisor.services.notification_service import (
 
 def test_create_notification(
     notification_service: NotificationService,
+    caplog: pytest.LogCaptureFixture,
 ) -> None:
-    notification = notification_service.create_notification(
-        user_id=1,
-        subscription_id=1,
-        schedule_version_id=1,
-        message="Route 11 was added",
-    )
+    with caplog.at_level(
+        logging.INFO,
+        logger="transit_advisor.services.notification_service",
+    ):
+        notification = notification_service.create_notification(
+            user_id=1,
+            subscription_id=1,
+            schedule_version_id=1,
+            message="Route 11 was added",
+        )
 
     assert notification.id == 1
     assert notification.user_id == 1
@@ -30,6 +38,7 @@ def test_create_notification(
     assert notification.schedule_version_id == 1
     assert notification.message == "Route 11 was added"
     assert isinstance(notification.created_at, datetime)
+    assert "notification_created" in caplog.text
 
 
 def test_notification_saved(

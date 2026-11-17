@@ -8,6 +8,7 @@ services:
 
     environment:
       DATABASE_URL: postgresql+psycopg://postgres:postgres@db:5432/transit
+      LOG_LEVEL: ${LOG_LEVEL:-ERROR}
 
     volumes:
       - .:/app

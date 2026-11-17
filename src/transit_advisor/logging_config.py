@@ -1,13 +1,11 @@
 import logging
-import os
+
+from transit_advisor.settings import LOG_LEVEL
 
 
 def configure_logging() -> None:
-    configured_level = logging.getLevelName(os.getenv("LOG_LEVEL", "INFO").upper())
-    level = configured_level if isinstance(configured_level, int) else logging.INFO
-
     root_logger = logging.getLogger()
-    root_logger.setLevel(level)
+    root_logger.setLevel(LOG_LEVEL)
     if root_logger.handlers:
         return
 

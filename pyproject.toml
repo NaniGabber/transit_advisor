@@ -27,6 +27,7 @@ dependencies = [
     "pytest",
     "python-multipart",
     "httpx2",
+    "dotenv",
 
 ]
 

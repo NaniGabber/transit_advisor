@@ -1,5 +1,9 @@
+import logging
+
 from transit_advisor.domain.journey import Journey
 from transit_advisor.domain.repositories.stoptime import StopTimeRepository
+
+logger = logging.getLogger(__name__)
 
 
 class JourneyService:
@@ -36,4 +40,10 @@ class JourneyService:
                     stop_sequence_end=arrival.stop_sequence,
                 )
             )
+        logger.debug(
+            "direct_journeys_found from_stop_id=%s to_stop_id=%s count=%s",
+            from_stop_id,
+            to_stop_id,
+            len(result),
+        )
         return result

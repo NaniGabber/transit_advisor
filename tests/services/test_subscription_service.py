@@ -1,3 +1,4 @@
+import logging
 from collections.abc import Callable
 
 import pytest
@@ -17,28 +18,41 @@ def test_subscribe_user(
     subscription_repository: SubscriptionRepository,
     route_repository: RouteRepository,
     route: Route,
+    caplog: pytest.LogCaptureFixture,
 ) -> None:
     service = SubscriptionService(subscription_repository, route_repository)
 
     assert route.id is not None
-    subscription = service.subscribe(user_id=1, route_id=route.id)
+    with caplog.at_level(
+        logging.INFO,
+        logger="transit_advisor.services.subscription_service",
+    ):
+        subscription = service.subscribe(user_id=1, route_id=route.id)
 
     assert subscription is not None
     assert subscription.user_id == 1
     assert subscription.route_id == route.id
+    assert "subscription_created" in caplog.text
 
 
 def test_duplicate_subscription_rejected(
     subscription_repository: SubscriptionRepository,
     route_repository: RouteRepository,
     route: Route,
+    caplog: pytest.LogCaptureFixture,
 ) -> None:
     service = SubscriptionService(subscription_repository, route_repository)
     assert route.id is not None
     service.subscribe(user_id=1, route_id=route.id)
 
-    with pytest.raises(AlreadySubscribedError):
-        service.subscribe(user_id=1, route_id=route.id)
+    with caplog.at_level(
+        logging.WARNING,
+        logger="transit_advisor.services.subscription_service",
+    ):
+        with pytest.raises(AlreadySubscribedError):
+            service.subscribe(user_id=1, route_id=route.id)
+
+    assert "subscription_rejected reason=already_exists" in caplog.text
 
 
 def test_subscribe_unknown_route_raises(

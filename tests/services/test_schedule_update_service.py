@@ -1,3 +1,7 @@
+import logging
+
+import pytest
+
 from tests.services.fake_repos import (
     FakeNotificationRepository,
     FakeRouteRepository,
@@ -70,6 +74,7 @@ def test_create_notification_for_added_route(
     fake_notification_repository: FakeNotificationRepository,
     fake_subscription_repository: FakeSubscriptionRepository,
     fake_route_repository: FakeRouteRepository,
+    caplog: pytest.LogCaptureFixture,
 ) -> None:
     route = make_route(fake_route_repository)
     assert route.id is not None
@@ -83,22 +88,26 @@ def test_create_notification_for_added_route(
     )
     assert subscription.id is not None
 
-    created = fake_schedule_update_service.process_update(
-        old_routes=[],
-        new_routes=[route],
-        schedule_version_id=1,
-        old_stop_times=[
-            make_stop_time(
-                trip_id=1, arrival_time="08:00:00", departure_time="08:01:00"
-            ),
-        ],
-        new_stop_times=[
-            make_stop_time(
-                trip_id=1, arrival_time="08:05:00", departure_time="08:06:00"
-            ),
-        ],
-        trip_to_route={1: route.route_id},
-    )
+    with caplog.at_level(
+        logging.INFO,
+        logger="transit_advisor.services.schedule_update_service",
+    ):
+        created = fake_schedule_update_service.process_update(
+            old_routes=[],
+            new_routes=[route],
+            schedule_version_id=1,
+            old_stop_times=[
+                make_stop_time(
+                    trip_id=1, arrival_time="08:00:00", departure_time="08:01:00"
+                ),
+            ],
+            new_stop_times=[
+                make_stop_time(
+                    trip_id=1, arrival_time="08:05:00", departure_time="08:06:00"
+                ),
+            ],
+            trip_to_route={1: route.route_id},
+        )
 
     assert created == 1
 
@@ -108,6 +117,8 @@ def test_create_notification_for_added_route(
     assert saved[0].subscription_id == subscription.id
     assert saved[0].schedule_version_id == 1
     assert "15" in saved[0].message
+    assert "schedule_comparison_completed" in caplog.text
+    assert "schedule_notifications_created version_id=1 count=1" in caplog.text
 
 
 def test_no_notifications_when_no_changes(

@@ -1,4 +1,5 @@
 import json
+import logging
 from datetime import datetime
 
 import pytest
@@ -19,7 +20,12 @@ from transit_advisor.infrastructure.repositories.database_transfer import (
 def test_database_snapshot_export_and_import_round_trip(
     client: TestClient,
     session: Session,
+    caplog: pytest.LogCaptureFixture,
 ) -> None:
+    caplog.set_level(
+        logging.INFO,
+        logger="transit_advisor.services.database_transfer_service",
+    )
     agency = AgencyModel(
         agency_id="metro",
         name="Kharkiv Metro",
@@ -72,6 +78,8 @@ def test_database_snapshot_export_and_import_round_trip(
         12,
         30,
     )
+    assert "database_snapshot_exported" in caplog.text
+    assert "database_snapshot_imported" in caplog.text
 
     session.add(
         AgencyModel(

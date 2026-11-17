@@ -1,20 +1,26 @@
+import logging
+
+import pytest
+
 from transit_advisor.services.checksum_service import (
     ChecksumService,
 )
 
 
-def test_same_content_produces_same_checksum() -> None:
+def test_same_content_produces_same_checksum(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
     service = ChecksumService()
 
-    checksum_1 = service.calculate(
-        b"test content",
-    )
-
-    checksum_2 = service.calculate(
-        b"test content",
-    )
+    with caplog.at_level(
+        logging.DEBUG,
+        logger="transit_advisor.services.checksum_service",
+    ):
+        checksum_1 = service.calculate(b"test content")
+        checksum_2 = service.calculate(b"test content")
 
     assert checksum_1 == checksum_2
+    assert "checksum_calculated bytes=12" in caplog.text
 
 
 def test_different_content_produces_different_checksums() -> None:

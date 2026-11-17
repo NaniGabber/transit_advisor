@@ -132,7 +132,7 @@ centralize transaction boundaries.
 
 The application configures Python's standard `logging` module at startup. HTTP requests are logged with method, path, status, and duration. Services log aggregate counts and business events for feed imports, schedule changes, subscriptions, notifications, and database snapshots.
 
-The log level is configurable with `LOG_LEVEL` and defaults to `INFO`. 4xx responses are warnings; 5xx responses and unhandled exceptions are errors. Request bodies and snapshot contents are intentionally excluded.
+The log level is configurable with `LOG_LEVEL`. The application defaults to `ERROR`; the provided `.env.example` selects `WARNING`. 4xx responses are warnings; 5xx responses and unhandled exceptions are errors. Request bodies and snapshot contents are intentionally excluded.
 
 ---
 

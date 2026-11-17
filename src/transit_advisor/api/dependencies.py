@@ -1,3 +1,4 @@
+import logging
 from collections.abc import Generator
 from typing import Annotated
 
@@ -52,6 +53,7 @@ SessionLocal = sessionmaker(
     autoflush=False,
     autocommit=False,
 )
+logger = logging.getLogger(__name__)
 
 
 def get_session() -> Generator[Session, None, None]:
@@ -59,6 +61,7 @@ def get_session() -> Generator[Session, None, None]:
     try:
         yield session
     except Exception:
+        logger.exception("database_session_failed")
         session.rollback()
         raise
     finally:

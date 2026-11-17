@@ -1,4 +1,5 @@
 import hashlib
+import logging
 from datetime import UTC, datetime
 from unittest.mock import patch
 
@@ -40,15 +41,21 @@ def test_create_version_saves_version() -> None:
     assert len(repository.saved) == 1
 
 
-def test_duplicate_checksum_rejected() -> None:
+def test_duplicate_checksum_rejected(caplog: pytest.LogCaptureFixture) -> None:
     repository = FakeScheduleVersionRepository()
     service = ScheduleVersionService(repository)
 
     checksum = "a" * 64
     service.create_version(checksum)
-    duplicate = service.create_version(checksum)
+    with caplog.at_level(
+        logging.WARNING,
+        logger="transit_advisor.services.schedule_version_service",
+    ):
+        duplicate = service.create_version(checksum)
 
     assert duplicate is None
+    assert "schedule_version_duplicate" in caplog.text
+    assert checksum in caplog.text
 
 
 def test_create_multiple_versions() -> None:

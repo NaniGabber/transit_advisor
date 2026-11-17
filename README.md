@@ -210,17 +210,9 @@ Verify:
 
 ## Logging
 
-At the current stage, centralized logging has not yet been implemented.
+The application uses Python's standard `logging` module. HTTP requests include method, path, status, and duration; 4xx responses and rejected operations are warnings, while 5xx responses and unhandled exceptions are errors with tracebacks. Service logs include feed/import counts, duplicate checksums, subscription changes, schedule updates, notification counts, and database snapshot operations without logging request bodies or snapshot contents.
 
-During development and testing, the project relies on:
-
-- Python exceptions;
-- SQLAlchemy logs and messages;
-- PostgreSQL messages;
-- FastAPI logs and messages;
-- Pytest reports.
-
-Future versions are expected to introduce structured logging based on Python's standard `logging` module for monitoring feed imports, error handling, and system operation auditing.
+Set `LOG_LEVEL` to `DEBUG`, `INFO`, `WARNING`, or `ERROR` to adjust verbosity. The default is `INFO`.
 
 Run tests:
 

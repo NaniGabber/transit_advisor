@@ -1,4 +1,7 @@
+import logging
 from pathlib import Path
+
+import pytest
 
 from transit_advisor.domain.agency import Agency
 from transit_advisor.domain.route import Route
@@ -61,19 +64,26 @@ def test_import_agencies_skips_invalid_rows() -> None:
     assert len(container.agency_repository.saved) == 0
 
 
-def test_import_all_imports_every_file_in_archive() -> None:
+def test_import_all_imports_every_file_in_archive(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
     service = get_service().service
 
-    stats = service.import_all(
-        Path("feed.zip"),
-        FakeGtfsArchiveReader(),
-        schedule_version_id=1,
-    )
+    with caplog.at_level(
+        logging.INFO,
+        logger="transit_advisor.services.gtfs_import_service",
+    ):
+        stats = service.import_all(
+            Path("feed.zip"),
+            FakeGtfsArchiveReader(),
+            schedule_version_id=1,
+        )
 
     assert set(stats) == {"agencies", "routes", "stops", "trips", "stop_times"}
     assert all(
         result.imported == 0 and result.rejected == 0 for result in stats.values()
     )
+    assert "gtfs_tables_imported version_id=1 imported=0 rejected=0" in caplog.text
 
 
 def test_import_all_returns_empty_stats_when_archive_has_no_files() -> None:

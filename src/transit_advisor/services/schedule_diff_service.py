@@ -1,3 +1,4 @@
+import logging
 from typing import TypeVar
 
 from transit_advisor.domain.route import Route
@@ -6,6 +7,7 @@ from transit_advisor.domain.stoptime import StopTime
 from transit_advisor.domain.trip import Trip
 
 TripKey = TypeVar("TripKey", int, str)
+logger = logging.getLogger(__name__)
 
 
 class ScheduleDiffService:
@@ -31,11 +33,18 @@ class ScheduleDiffService:
             trip_to_route or {},
         )
 
-        return ScheduleDiff(
+        diff = ScheduleDiff(
             added_routes=added_routes,
             removed_routes=removed_routes,
             changed_stop_times=changed_stop_times,
         )
+        logger.debug(
+            "route_diff_calculated added_routes=%s removed_routes=%s changed_routes=%s",
+            len(diff.added_routes),
+            len(diff.removed_routes),
+            len(diff.changed_stop_times),
+        )
+        return diff
 
     def compare_versions(
         self,
@@ -74,11 +83,19 @@ class ScheduleDiffService:
             trip_to_route,
         )
 
-        return ScheduleDiff(
+        diff = ScheduleDiff(
             added_routes=added_routes,
             removed_routes=removed_routes,
             changed_stop_times=changed_stop_times,
         )
+        logger.debug(
+            "version_diff_calculated added_routes=%s removed_routes=%s "
+            "changed_routes=%s",
+            len(diff.added_routes),
+            len(diff.removed_routes),
+            len(diff.changed_stop_times),
+        )
+        return diff
 
     def _index_by_pk(
         self,

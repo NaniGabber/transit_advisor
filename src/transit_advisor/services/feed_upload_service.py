@@ -1,3 +1,4 @@
+import logging
 from pathlib import Path
 
 from transit_advisor.domain.upload_result import UploadResult
@@ -9,6 +10,8 @@ from transit_advisor.services.feed_validation_service import FeedValidator
 from transit_advisor.services.gtfs_import_service import GtfsImportService
 from transit_advisor.services.schedule_update_service import ScheduleUpdateService
 from transit_advisor.services.schedule_version_service import ScheduleVersionService
+
+logger = logging.getLogger(__name__)
 
 
 class FeedUploadService:
@@ -32,6 +35,10 @@ class FeedUploadService:
         archive_files = self._archive_reader.list_files(archive_path)
 
         if not self._validator.validate(archive_files):
+            logger.warning(
+                "feed_upload_rejected reason=missing_required_files files=%s",
+                sorted(archive_files),
+            )
             return UploadResult(imported=False, duplicate=False, checksum="")
 
         checksum = self._checksum_service.calculate_from_file(archive_path)
@@ -41,6 +48,7 @@ class FeedUploadService:
 
         version = self._schedule_version_service.create_version(checksum)
         if version is None:
+            logger.warning("duplicate_feed checksum=%s", checksum)
             return UploadResult(imported=False, duplicate=True, checksum=checksum)
 
         if version.id is None:
@@ -53,10 +61,36 @@ class FeedUploadService:
         )
 
         if self._schedule_update_service is not None and old_version_id is not None:
-            self._schedule_update_service.process_version_update(
-                old_version_id=old_version_id,
-                new_version_id=version.id,
-                schedule_version_id=version.id,
+            notifications_created = (
+                self._schedule_update_service.process_version_update(
+                    old_version_id=old_version_id,
+                    new_version_id=version.id,
+                    schedule_version_id=version.id,
+                )
+            )
+            logger.info(
+                "schedule_update_processed old_version_id=%s "
+                "new_version_id=%s notifications=%s",
+                old_version_id,
+                version.id,
+                notifications_created,
+            )
+
+        imported_total = sum(stat.imported for stat in stats.values())
+        rejected_total = sum(stat.rejected for stat in stats.values())
+        logger.info(
+            "feed_uploaded version_id=%s checksum=%s imported=%s rejected=%s tables=%s",
+            version.id,
+            checksum,
+            imported_total,
+            rejected_total,
+            {name: stat.imported for name, stat in stats.items()},
+        )
+        if rejected_total:
+            logger.warning(
+                "feed_rows_rejected version_id=%s rejected=%s",
+                version.id,
+                rejected_total,
             )
 
         return UploadResult(

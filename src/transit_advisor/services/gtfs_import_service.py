@@ -1,3 +1,4 @@
+import logging
 from collections.abc import Iterator
 from pathlib import Path
 
@@ -20,6 +21,7 @@ from transit_advisor.infrastructure.gtfs.mappers.stoptime import to_stoptime
 from transit_advisor.infrastructure.gtfs.mappers.trip import to_trip
 
 BATCH_SIZE = 1000
+logger = logging.getLogger(__name__)
 
 
 class GtfsImportService:
@@ -72,6 +74,15 @@ class GtfsImportService:
                 schedule_version_id,
             )
 
+        imported_total = sum(stat.imported for stat in stats.values())
+        rejected_total = sum(stat.rejected for stat in stats.values())
+        logger.info(
+            "gtfs_tables_imported version_id=%s imported=%s rejected=%s tables=%s",
+            schedule_version_id,
+            imported_total,
+            rejected_total,
+            {name: stat.imported for name, stat in stats.items()},
+        )
         return stats
 
     def import_agencies(

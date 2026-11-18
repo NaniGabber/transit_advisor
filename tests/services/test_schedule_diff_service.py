@@ -1,3 +1,7 @@
+import logging
+
+import pytest
+
 from transit_advisor.domain.route import Route
 from transit_advisor.domain.stoptime import StopTime
 from transit_advisor.services.schedule_diff_service import (
@@ -5,7 +9,7 @@ from transit_advisor.services.schedule_diff_service import (
 )
 
 
-def test_detect_added_route() -> None:
+def test_detect_added_route(caplog: pytest.LogCaptureFixture) -> None:
     service = ScheduleDiffService()
 
     old_routes = [
@@ -38,13 +42,15 @@ def test_detect_added_route() -> None:
         ),
     ]
 
-    diff = service.compare_routes(
-        old_routes,
-        new_routes,
-    )
+    with caplog.at_level(
+        logging.DEBUG,
+        logger="transit_advisor.services.schedule_diff_service",
+    ):
+        diff = service.compare_routes(old_routes, new_routes)
 
     assert diff.added_routes == ["12"]
     assert diff.removed_routes == []
+    assert "route_diff_calculated added_routes=1" in caplog.text
 
 
 def test_detect_removed_route() -> None:

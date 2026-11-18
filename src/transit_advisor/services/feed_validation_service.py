@@ -1,3 +1,8 @@
+import logging
+
+logger = logging.getLogger(__name__)
+
+
 class FeedValidator:
     REQUIRED_FILES = {
         "agency.txt",
@@ -14,6 +19,11 @@ class FeedValidator:
         self,
         file_names: set[str],
     ) -> bool:
-        return self.REQUIRED_FILES.issubset(
-            file_names,
+        missing_files = self.REQUIRED_FILES - file_names
+        is_valid = not missing_files
+        logger.debug(
+            "feed_validation_completed valid=%s missing_files=%s",
+            is_valid,
+            sorted(missing_files),
         )
+        return is_valid

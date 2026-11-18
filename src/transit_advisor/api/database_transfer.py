@@ -1,3 +1,4 @@
+import logging
 from datetime import UTC, datetime
 from typing import Annotated
 
@@ -15,6 +16,7 @@ from transit_advisor.services.database_transfer_service import DatabaseTransferS
 
 router = APIRouter(prefix="/api/v1/admin/database", tags=["database"])
 MAX_SNAPSHOT_SIZE = 100 * 1024 * 1024
+logger = logging.getLogger(__name__)
 
 
 @router.get(
@@ -56,6 +58,7 @@ def import_database(
     session: Annotated[Session, Depends(get_session)],
 ) -> dict[str, dict[str, int]]:
     if not confirm:
+        logger.warning("database_snapshot_import_rejected reason=confirmation_missing")
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Set confirm=true to replace the application database data.",
@@ -63,6 +66,10 @@ def import_database(
 
     snapshot = file.file.read(MAX_SNAPSHOT_SIZE + 1)
     if len(snapshot) > MAX_SNAPSHOT_SIZE:
+        logger.warning(
+            "database_snapshot_import_rejected reason=too_large size=%s",
+            len(snapshot),
+        )
         raise HTTPException(
             status_code=status.HTTP_413_CONTENT_TOO_LARGE,
             detail="Database snapshot exceeds the 100 MiB limit.",
@@ -72,6 +79,7 @@ def import_database(
         with session.begin():
             imported = service.import_snapshot(snapshot)
     except InvalidDatabaseSnapshotError as exc:
+        logger.warning("database_snapshot_import_rejected reason=invalid_snapshot")
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail=str(exc),

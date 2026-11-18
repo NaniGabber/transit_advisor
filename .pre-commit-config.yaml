@@ -18,13 +18,14 @@ repos:
       - id: ruff-format
 
   - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v2.4.0
+    rev: v2.4.1
     hooks:
       - id: mypy
         files: ^src/
         additional_dependencies:
           - fastapi
           - pydantic
+          - python-dotenv
           - sqlalchemy>=2.0
           - types-requests
         args: [--config-file=pyproject.toml]

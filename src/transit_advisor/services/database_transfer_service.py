@@ -1,4 +1,5 @@
 import json
+import logging
 from datetime import UTC, datetime
 from typing import cast
 
@@ -10,6 +11,7 @@ from transit_advisor.domain.repositories.database_transfer import (
 
 SNAPSHOT_FORMAT = "transit-advisor-database"
 SNAPSHOT_VERSION = 1
+logger = logging.getLogger(__name__)
 
 
 class DatabaseTransferService:
@@ -17,18 +19,25 @@ class DatabaseTransferService:
         self._repository = repository
 
     def export_snapshot(self) -> bytes:
+        tables = self._repository.export_tables()
         snapshot = {
             "format": SNAPSHOT_FORMAT,
             "version": SNAPSHOT_VERSION,
             "created_at": datetime.now(UTC).isoformat(),
-            "tables": self._repository.export_tables(),
+            "tables": tables,
         }
-        return json.dumps(
+        snapshot_bytes = json.dumps(
             snapshot,
             default=self._serialize_value,
             ensure_ascii=False,
             separators=(",", ":"),
         ).encode("utf-8")
+        logger.info(
+            "database_snapshot_exported bytes=%s tables=%s",
+            len(snapshot_bytes),
+            {name: len(rows) for name, rows in tables.items()},
+        )
+        return snapshot_bytes
 
     def import_snapshot(self, snapshot_bytes: bytes) -> dict[str, int]:
         try:
@@ -56,7 +65,13 @@ class DatabaseTransferService:
         ):
             raise InvalidDatabaseSnapshotError("Snapshot table rows are invalid")
 
-        return self._repository.replace_tables(cast(DatabaseRows, tables))
+        imported = self._repository.replace_tables(cast(DatabaseRows, tables))
+        logger.info(
+            "database_snapshot_imported tables=%s rows=%s",
+            len(imported),
+            imported,
+        )
+        return imported
 
     @staticmethod
     def _serialize_value(value: object) -> str:

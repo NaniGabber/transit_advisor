@@ -126,36 +126,13 @@ centralize transaction boundaries.
 
 ## Logging
 
-### Status: PLANNED
+### Status: DONE
 
 ### Current State
 
-The system relies on:
+The application configures Python's standard `logging` module at startup. HTTP requests are logged with method, path, status, and duration. Services log aggregate counts and business events for feed imports, schedule changes, subscriptions, notifications, and database snapshots.
 
-- FastAPI exception handling;
-- SQLAlchemy exceptions;
-- PostgreSQL error messages;
-- Pytest reports.
-
-### Limitation
-
-Operational events are not recorded centrally.
-
-### Future Refactoring
-
-Implement structured logging using:
-
-```python
-logging
-```
-
-for:
-
-- feed imports;
-- validation failures;
-- schedule updates;
-- notification creation;
-- critical application errors.
+The log level is configurable with `LOG_LEVEL`. The application defaults to `ERROR`; the provided `.env.example` selects `WARNING`. 4xx responses are warnings; 5xx responses and unhandled exceptions are errors. Request bodies and snapshot contents are intentionally excluded.
 
 ---
 
@@ -312,7 +289,7 @@ Future refactoring efforts should focus primarily on:
    `Route`/`Stop`/`Agency` deferred, see ADR-002).
 2. Timetable-level change detection (**DONE** — by GTFS `trip_id`).
 3. Transaction management (**DONE** — `session.begin()` in `POST /feeds`).
-4. Structured logging (**PLANNED**).
+4. Centralized application logging (**DONE**).
 5. Analytical features (**DONE** — trips-by-day, headway, top stops).
 6. Test database isolation (**PARTIAL** — SAVEPOINT used, but `create_all`
    still slow).

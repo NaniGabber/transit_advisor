@@ -40,14 +40,25 @@ def test_duplicate_subscription_returns_409(
         json=payload,
     )
 
-    second = client.post(
-        "/api/v1/subscriptions",
-        headers={"X-Role": "user"},
-        json=payload,
-    )
+    duplicate_responses = [
+        client.post(
+            "/api/v1/subscriptions",
+            headers={"X-Role": "user"},
+            json=payload,
+        )
+        for _ in range(3)
+    ]
 
     assert first.status_code == 201
-    assert second.status_code == 409
+    assert [response.status_code for response in duplicate_responses] == [
+        409,
+        409,
+        409,
+    ]
+
+    subscriptions = client.get("/api/v1/subscriptions/users/10001")
+    assert subscriptions.status_code == 200
+    assert len(subscriptions.json()) == 1
 
 
 def test_get_user_subscriptions(

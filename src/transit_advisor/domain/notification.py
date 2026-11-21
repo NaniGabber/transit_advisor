@@ -26,7 +26,7 @@ class Notification:
         if not self.message.strip():
             raise ValueError("message cannot be empty")
 
-        if len(self.message) > 1000:
+        if len(self.message) > 100000:
             raise ValueError("message is too long")
 
     @property

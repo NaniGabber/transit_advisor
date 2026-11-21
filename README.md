@@ -160,8 +160,10 @@ GET /stops/{id}/departures?from=&page=&page_size=
 
 ```http
 POST /subscriptions
-GET  /subscriptions/users/{user_id}
+GET  /subscriptions?user_id={user_id}
 ```
+
+The legacy `GET /subscriptions/users/{user_id}` path is also supported.
 
 ### Notification API
 

@@ -153,13 +153,15 @@ Searches routes by route number, name, or stop.
 
 ### `GET /api/v1/routes/{route_id}/diff`
 
-Compares two schedule versions for a specific route.
+Compares two schedule versions directly for a specific route. The versions do
+not need to be consecutive; for example, `from_version=1` and `to_version=3`
+compares version 1 with version 3 without combining version 2's changes.
 
 **Path parameters:**
 
 | Parameter | Type | Description |
 |------------|------|-------------|
-| `route_id` | integer | Internal route ID. |
+| `route_id` | integer | Internal route ID (`id` from route search, not the GTFS `route_id`). |
 
 **Query parameters:**
 
@@ -173,7 +175,7 @@ Compares two schedule versions for a specific route.
 ```json
 {
   "from_version": 1,
-  "to_version": 2,
+  "to_version": 3,
   "added_routes": [],
   "removed_routes": [],
   "changed_stop_times": {
@@ -184,7 +186,7 @@ Compares two schedule versions for a specific route.
 
 **Errors:**
 
-- `404 Not Found` — route not found.
+- `404 Not Found` — route not found or it has no trips in either selected version.
 
 ---
 

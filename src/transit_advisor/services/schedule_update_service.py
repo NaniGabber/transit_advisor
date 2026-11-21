@@ -177,6 +177,12 @@ class ScheduleUpdateService:
         old_trips = [t for t in old_trips if t.route_id == route_id]
         new_trips = [t for t in new_trips if t.route_id == route_id]
 
+        if not old_trips and not new_trips:
+            raise ValueError(
+                f"Route {route.route_id} has no trips in either schedule version "
+                f"{from_version_id} or {to_version_id}"
+            )
+
         old_stop_times = self._stoptime_repository.find_by_trip_ids(
             [t.id for t in old_trips if t.id is not None]
         )

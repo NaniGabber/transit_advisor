@@ -23,5 +23,5 @@ def to_trip(
             )
             or None,
         )
-    except ValueError:
+    except Exception:
         return None

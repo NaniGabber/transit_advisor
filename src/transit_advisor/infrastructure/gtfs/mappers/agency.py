@@ -18,5 +18,5 @@ def to_agency(row: dict[str, str]) -> Agency | None:
             fare_url=row.get("agency_fare_url"),
             email=row.get("agency_email"),
         )
-    except ValueError:
+    except Exception:
         return None

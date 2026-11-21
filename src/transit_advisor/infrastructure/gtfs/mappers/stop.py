@@ -3,13 +3,16 @@ from transit_advisor.infrastructure.gtfs.parsing import normalize, parse_float
 
 
 def to_stop(row: dict[str, str]) -> Stop | None:
-    latitude = parse_float(
-        row.get("stop_lat", ""),
-    )
+    try:
+        latitude = parse_float(
+            row.get("stop_lat", ""),
+        )
 
-    longitude = parse_float(
-        row.get("stop_lon", ""),
-    )
+        longitude = parse_float(
+            row.get("stop_lon", ""),
+        )
+    except Exception:
+        return None
 
     if latitude is None or longitude is None:
         return None

@@ -231,6 +231,14 @@ The application uses Python's standard `logging` module. HTTP requests include m
 
 Set `LOG_LEVEL` to `DEBUG`, `INFO`, `WARNING`, or `ERROR` to adjust verbosity. The `.env` example uses `WARNING`; if unset, the code defaults to `ERROR`.
 
+## Source rate limiting
+
+The API limits requests independently by source IP. Configure
+`RATE_LIMIT_REQUESTS` and `RATE_LIMIT_WINDOW_SECONDS`; defaults are 100 requests
+per 60 seconds. Set `RATE_LIMIT_TRUST_PROXY_HEADERS=true` only behind a trusted
+reverse proxy. In that mode the middleware uses `X-Forwarded-For`; otherwise it
+uses the direct connection address.
+
 Run tests:
 
 ```bash

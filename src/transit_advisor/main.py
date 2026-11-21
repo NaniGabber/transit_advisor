@@ -23,10 +23,23 @@ from transit_advisor.api.subscription import (
     router as subscriptions_router,
 )
 from transit_advisor.logging_config import configure_logging
+from transit_advisor.rate_limit import SourceRateLimitMiddleware
+from transit_advisor.settings import (
+    RATE_LIMIT_REQUESTS,
+    RATE_LIMIT_TRUST_PROXY_HEADERS,
+    RATE_LIMIT_WINDOW_SECONDS,
+)
 
 configure_logging()
 logger = logging.getLogger(__name__)
 app = FastAPI()
+
+app.add_middleware(
+    SourceRateLimitMiddleware,
+    requests=RATE_LIMIT_REQUESTS,
+    window_seconds=RATE_LIMIT_WINDOW_SECONDS,
+    trust_proxy_headers=RATE_LIMIT_TRUST_PROXY_HEADERS,
+)
 
 
 @app.middleware("http")

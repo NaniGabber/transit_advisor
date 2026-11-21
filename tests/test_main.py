@@ -6,9 +6,11 @@ from fastapi import FastAPI
 from fastapi.testclient import TestClient
 from starlette.requests import Request
 from starlette.responses import Response
+from starlette.testclient import TestClient as StarletteTestClient
 
 from transit_advisor.main import app as production_app
 from transit_advisor.main import log_http_requests
+from transit_advisor.rate_limit import SourceRateLimitMiddleware
 
 
 def test_app_is_created(
@@ -132,3 +134,29 @@ def test_redoc_endpoint_is_available(
 
     assert response.status_code == 200
     assert "text/html" in response.headers["content-type"]
+
+
+def test_source_rate_limit_returns_429() -> None:
+    limited_app = FastAPI()
+    limited_app.add_middleware(
+        SourceRateLimitMiddleware,
+        requests=2,
+        window_seconds=60,
+    )
+
+    @limited_app.get("/")
+    def root() -> dict[str, str]:
+        return {"status": "ok"}
+
+    with StarletteTestClient(limited_app) as limited_client:
+        first = limited_client.get("/")
+        second = limited_client.get("/")
+        limited = limited_client.get("/")
+
+    assert first.status_code == 200
+    assert second.status_code == 200
+    assert limited.status_code == 429
+    assert limited.json() == {"detail": "Too many requests"}
+    assert limited.headers["Retry-After"] == "60"
+    assert limited.headers["X-RateLimit-Limit"] == "2"
+    assert limited.headers["X-RateLimit-Remaining"] == "0"

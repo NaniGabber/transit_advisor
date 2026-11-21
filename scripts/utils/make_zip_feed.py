@@ -11,7 +11,8 @@ STOPS_COUNT = 2000
 TRIPS_COUNT = 500
 STOP_TIMES_COUNT = 10000
 
-random.seed(42)
+BUILD_ID = int(datetime.now().timestamp())
+random.seed(BUILD_ID)
 
 
 def generate_feed(output_zip: Path) -> None:
@@ -24,8 +25,12 @@ def generate_feed(output_zip: Path) -> None:
     route_types = [0, 2, 3]
 
     try:
-        # agency.txt
-        with open(temp_dir / "agency.txt", "w", newline="", encoding="utf-8") as f:
+        with open(
+            temp_dir / "agency.txt",
+            "w",
+            newline="",
+            encoding="utf-8",
+        ) as f:
             writer = csv.writer(f)
 
             writer.writerow(
@@ -46,8 +51,12 @@ def generate_feed(output_zip: Path) -> None:
                 ]
             )
 
-        # routes.txt
-        with open(temp_dir / "routes.txt", "w", newline="", encoding="utf-8") as f:
+        with open(
+            temp_dir / "routes.txt",
+            "w",
+            newline="",
+            encoding="utf-8",
+        ) as f:
             writer = csv.writer(f)
 
             writer.writerow(
@@ -61,18 +70,27 @@ def generate_feed(output_zip: Path) -> None:
             )
 
             for route_id in range(1, ROUTES_COUNT + 1):
+                route_name = f"Route {route_id}"
+
+                if random.random() < 0.05:
+                    route_name += " Express"
+
                 writer.writerow(
                     [
                         f"ROUTE_{route_id}",
                         "1",
                         route_id,
-                        f"Route {route_id}",
+                        route_name,
                         random.choice(route_types),
                     ]
                 )
 
-        # stops.txt
-        with open(temp_dir / "stops.txt", "w", newline="", encoding="utf-8") as f:
+        with open(
+            temp_dir / "stops.txt",
+            "w",
+            newline="",
+            encoding="utf-8",
+        ) as f:
             writer = csv.writer(f)
 
             writer.writerow(
@@ -89,13 +107,27 @@ def generate_feed(output_zip: Path) -> None:
                     [
                         f"STOP_{stop_id}",
                         f"Stop {stop_id}",
-                        round(49.0 + random.uniform(-1.5, 1.5), 6),
-                        round(33.0 + random.uniform(-1.5, 1.5), 6),
+                        round(
+                            49.0
+                            + random.uniform(-1.5, 1.5)
+                            + random.uniform(-0.002, 0.002),
+                            6,
+                        ),
+                        round(
+                            33.0
+                            + random.uniform(-1.5, 1.5)
+                            + random.uniform(-0.002, 0.002),
+                            6,
+                        ),
                     ]
                 )
 
-        # trips.txt
-        with open(temp_dir / "trips.txt", "w", newline="", encoding="utf-8") as f:
+        with open(
+            temp_dir / "trips.txt",
+            "w",
+            newline="",
+            encoding="utf-8",
+        ) as f:
             writer = csv.writer(f)
 
             writer.writerow(
@@ -115,7 +147,6 @@ def generate_feed(output_zip: Path) -> None:
                     ]
                 )
 
-        # stop_times.txt
         with open(
             temp_dir / "stop_times.txt",
             "w",
@@ -150,11 +181,18 @@ def generate_feed(output_zip: Path) -> None:
                     0,
                 )
 
+                start_dt += timedelta(
+                    minutes=random.randint(-3, 3),
+                )
+
                 for seq in range(1, stop_count + 1):
                     if generated >= STOP_TIMES_COUNT:
                         break
 
                     travel_time = random.randint(2, 8)
+
+                    if random.random() < 0.05:
+                        travel_time += random.choice((-1, 1))
 
                     arrival = start_dt + timedelta(minutes=travel_time * seq)
 
@@ -172,7 +210,6 @@ def generate_feed(output_zip: Path) -> None:
 
                     generated += 1
 
-        # create zip
         with zipfile.ZipFile(
             output_zip,
             "w",
@@ -191,6 +228,7 @@ def generate_feed(output_zip: Path) -> None:
                 )
 
         print(f"Created GTFS feed: {output_zip}")
+        print(f"Build id: {BUILD_ID}")
         print(f"Routes: {ROUTES_COUNT}")
         print(f"Stops: {STOPS_COUNT}")
         print(f"Trips: {TRIPS_COUNT}")
@@ -200,8 +238,10 @@ def generate_feed(output_zip: Path) -> None:
         shutil.rmtree(temp_dir, ignore_errors=True)
 
 
-def main():
-    parser = argparse.ArgumentParser(description="Generate test GTFS feed")
+def main() -> None:
+    parser = argparse.ArgumentParser(
+        description="Generate test GTFS feed",
+    )
 
     parser.add_argument(
         "output_zip",

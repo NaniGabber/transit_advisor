@@ -69,6 +69,10 @@ def create_subscription(
     "/users/{user_id}",
     response_model=list[SubscriptionResponse],
 )
+@router.get(
+    "",
+    response_model=list[SubscriptionResponse],
+)
 def get_subscriptions(
     user_id: int,
     service: Annotated[

@@ -11,7 +11,7 @@ from transit_advisor.api.schemas import (
 )
 from transit_advisor.services.analytics_service import AnalyticsService
 
-router = APIRouter(prefix="/analytics", tags=["analytics"])
+router = APIRouter(prefix="/api/v1/analytics", tags=["analytics"])
 
 
 @router.get(

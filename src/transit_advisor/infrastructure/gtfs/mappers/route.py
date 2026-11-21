@@ -6,9 +6,10 @@ def to_route(
     row: dict[str, str],
     agency_id: int,
 ) -> Route | None:
-    route_type = parse_int(
-        row.get("route_type", ""),
-    )
+    try:
+        route_type = parse_int(row.get("route_type", ""))
+    except Exception:
+        return None
 
     if route_type is None:
         return None

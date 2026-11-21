@@ -1,4 +1,4 @@
-from sqlalchemy import ForeignKey, String, UniqueConstraint
+from sqlalchemy import ForeignKey, Index, String, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from transit_advisor.infrastructure.database.base import Base
@@ -13,6 +13,9 @@ class StopTimeModel(Base):
             "stop_sequence",
             name="uq_stop_times_trip_sequence",
         ),
+        Index("ix_stop_times_stop_departure", "stop_id", "departure_time"),
+        Index("ix_stop_times_stop_arrival", "stop_id", "arrival_time"),
+        Index("ix_stop_times_stop_trip", "stop_id", "trip_id"),
     )
 
     id: Mapped[int] = mapped_column(primary_key=True)

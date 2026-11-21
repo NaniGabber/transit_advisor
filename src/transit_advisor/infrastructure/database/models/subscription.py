@@ -17,7 +17,7 @@ class SubscriptionModel(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
 
-    user_id: Mapped[int] = mapped_column(Integer, nullable=False)
+    user_id: Mapped[int] = mapped_column(Integer, nullable=False, index=True)
 
     route_id: Mapped[int] = mapped_column(
         ForeignKey("routes.id", ondelete="CASCADE"),

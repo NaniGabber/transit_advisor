@@ -4,6 +4,7 @@ from sqlalchemy import (
     Boolean,
     DateTime,
     ForeignKey,
+    Index,
     UniqueConstraint,
 )
 from sqlalchemy.orm import (
@@ -25,6 +26,14 @@ class NotificationModel(Base):
             "schedule_version_id",
             name="uq_notification",
         ),
+        Index(
+            "ix_notifications_user_read_created",
+            "user_id",
+            "is_read",
+            "created_at",
+        ),
+        Index("ix_notifications_subscription_id", "subscription_id"),
+        Index("ix_notifications_schedule_version_id", "schedule_version_id"),
     )
 
     id: Mapped[int] = mapped_column(

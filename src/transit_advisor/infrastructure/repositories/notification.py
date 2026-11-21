@@ -57,7 +57,15 @@ class SqlAlchemyNotificationRepository:
             .offset(offset)
             .limit(limit)
         )
-        return [self._to_domain(m) for m in self._session.scalars(statement)]
+
+        models = list(self._session.scalars(statement))
+
+        for model in models:
+            model.is_read = True
+
+        self._session.flush()
+
+        return [self._to_domain(model) for model in models]
 
     def mark_as_read(self, notification_id: int) -> bool:
         """Позначити одне сповіщення прочитаним. False — якщо не знайдено."""

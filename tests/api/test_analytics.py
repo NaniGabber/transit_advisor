@@ -2,7 +2,10 @@ from fastapi.testclient import TestClient
 
 
 def test_trips_by_day_returns_dict(client: TestClient) -> None:
-    response = client.get("/api/v1/analytics/routes/1/trips-by-day")
+    response = client.get(
+        "/api/v1/analytics/routes/1/trips-by-day",
+        headers={"X-Role": "admin"},
+    )
 
     assert response.status_code == 200
     data = response.json()
@@ -11,7 +14,10 @@ def test_trips_by_day_returns_dict(client: TestClient) -> None:
 
 
 def test_headway_returns_float_or_none(client: TestClient) -> None:
-    response = client.get("/api/v1/analytics/routes/1/headway")
+    response = client.get(
+        "/api/v1/analytics/routes/1/headway",
+        headers={"X-Role": "admin"},
+    )
 
     assert response.status_code == 200
     data = response.json()
@@ -23,7 +29,10 @@ def test_headway_returns_float_or_none(client: TestClient) -> None:
 
 
 def test_top_stops_returns_list(client: TestClient) -> None:
-    response = client.get("/api/v1/analytics/stops/top?limit=3")
+    response = client.get(
+        "/api/v1/analytics/stops/top?limit=3",
+        headers={"X-Role": "admin"},
+    )
 
     assert response.status_code == 200
     data = response.json()
@@ -33,7 +42,10 @@ def test_top_stops_returns_list(client: TestClient) -> None:
 
 
 def test_trips_by_day_for_unknown_route_returns_empty(client: TestClient) -> None:
-    response = client.get("/api/v1/analytics/routes/999/trips-by-day")
+    response = client.get(
+        "/api/v1/analytics/routes/999/trips-by-day",
+        headers={"X-Role": "admin"},
+    )
 
     assert response.status_code == 200
     data = response.json()
@@ -42,7 +54,10 @@ def test_trips_by_day_for_unknown_route_returns_empty(client: TestClient) -> Non
 
 
 def test_headway_for_unknown_route_returns_none(client: TestClient) -> None:
-    response = client.get("/api/v1/analytics/routes/999/headway")
+    response = client.get(
+        "/api/v1/analytics/routes/999/headway",
+        headers={"X-Role": "admin"},
+    )
 
     assert response.status_code == 200
     data = response.json()

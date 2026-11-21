@@ -104,6 +104,21 @@ The project uses static type analysis with MyPy and automated testing with Pytes
 
 ---
 
+## Database Backups
+
+When running with Docker Compose, the `backup` service creates an initial
+snapshot at `backups/transit-database.json`. It overwrites that same file every
+hour if the database changed since the previous snapshot. If there are no
+changes at the hourly check, it waits for the next committed database change
+and writes a new snapshot immediately.
+
+The worker listens for PostgreSQL change notifications, so it must run alongside
+the application and the database migrations must be applied. These JSON
+snapshots contain application data, not the PostgreSQL schema or migration
+history; keep separate full PostgreSQL backups for disaster recovery.
+
+---
+
 ## GTFS Processing Pipeline
 
 The current data processing workflow is as follows:

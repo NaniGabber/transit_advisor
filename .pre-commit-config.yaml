@@ -25,6 +25,7 @@ repos:
         additional_dependencies:
           - fastapi
           - pydantic
+          - psycopg[binary]
           - python-dotenv
           - sqlalchemy>=2.0
           - types-requests

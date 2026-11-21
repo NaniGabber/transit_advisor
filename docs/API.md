@@ -75,6 +75,11 @@ Uploads a GTFS archive. **Requires `X-Role: admin`.**
 
 Database transfer endpoints require `X-Role: admin`. Snapshots are versioned JSON files containing the application's eight data tables; they do not contain the PostgreSQL schema or migration history.
 
+In Docker Compose, the separate backup worker also writes an automatic snapshot
+to `backups/transit-database.json`: once at startup, hourly when data has
+changed, or immediately after the next database change if the hourly check
+found no changes. It overwrites the same file each time.
+
 ### `GET /api/v1/admin/database/export`
 
 Downloads a snapshot as an `application/json` attachment.

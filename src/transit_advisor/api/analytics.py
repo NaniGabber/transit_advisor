@@ -2,6 +2,7 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, Query
 
+from transit_advisor.api.auth import Role, require_role
 from transit_advisor.api.dependencies import get_analytics_service
 from transit_advisor.api.schemas import (
     AverageHeadwayResponse,
@@ -17,6 +18,7 @@ router = APIRouter(prefix="/api/v1/analytics", tags=["analytics"])
 @router.get(
     "/routes/{route_id}/trips-by-day",
     response_model=TripsByDayResponse,
+    dependencies=[Depends(require_role(Role.ADMIN))],
 )
 def get_trips_by_day(
     route_id: int,
@@ -31,6 +33,7 @@ def get_trips_by_day(
 @router.get(
     "/routes/{route_id}/headway",
     response_model=AverageHeadwayResponse,
+    dependencies=[Depends(require_role(Role.ADMIN))],
 )
 def get_average_headway(
     route_id: int,
@@ -45,6 +48,7 @@ def get_average_headway(
 @router.get(
     "/stops/top",
     response_model=TopStopsResponse,
+    dependencies=[Depends(require_role(Role.ADMIN))],
 )
 def get_top_stops(
     service: Annotated[AnalyticsService, Depends(get_analytics_service)],

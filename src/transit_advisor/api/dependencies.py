@@ -60,6 +60,7 @@ def get_session() -> Generator[Session, None, None]:
     session = SessionLocal()
     try:
         yield session
+        session.commit()
     except Exception:
         logger.exception("database_session_failed")
         session.rollback()

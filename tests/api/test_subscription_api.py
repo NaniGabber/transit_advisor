@@ -49,7 +49,7 @@ def test_get_session_commits_subscription(
     with session_factory() as verification_session:
         persisted = SqlAlchemySubscriptionRepository(
             verification_session,
-        ).find_by_id(saved.id)
+        ).find_by_user_and_route(user_id=1, route_id=route.id)
 
     assert persisted is not None
 
@@ -108,8 +108,7 @@ def test_get_user_subscriptions(
     )
 
     response = client.get(
-        "/api/v1/subscriptions",
-        params={"user_id": 1},
+        "/api/v1/subscriptions/users/1",
         headers={"X-Role": "user"},
     )
 

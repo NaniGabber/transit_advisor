@@ -32,7 +32,3 @@ class Stop:
 
         if not (-180 <= self.longitude <= 180):
             raise ValueError("longitude must be between -180 and 180")
-
-    @property
-    def coordinates(self) -> tuple[float, float]:
-        return self.latitude, self.longitude

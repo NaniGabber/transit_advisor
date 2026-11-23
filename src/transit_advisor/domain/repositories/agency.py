@@ -18,8 +18,3 @@ class AgencyRepository(Protocol):
         self,
         agency_id: str,
     ) -> Agency | None: ...
-
-    def find_by_agency_ids(
-        self,
-        agency_ids: list[str],
-    ) -> dict[str, Agency]: ...

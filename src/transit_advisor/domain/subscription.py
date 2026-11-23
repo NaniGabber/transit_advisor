@@ -16,7 +16,3 @@ class Subscription:
 
         if self.route_id <= 0:
             raise ValueError("route_id must be positive")
-
-    @property
-    def is_inactive(self) -> bool:
-        return not self.is_active

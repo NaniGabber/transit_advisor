@@ -24,7 +24,3 @@ class Trip:
 
         if self.headsign is not None and len(self.headsign) > 255:
             raise ValueError("headsign is too long")
-
-    @property
-    def has_headsign(self) -> bool:
-        return self.headsign is not None and bool(self.headsign.strip())

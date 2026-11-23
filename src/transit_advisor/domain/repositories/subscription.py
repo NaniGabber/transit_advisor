@@ -9,11 +9,6 @@ class SubscriptionRepository(Protocol):
         subscription: Subscription,
     ) -> Subscription: ...
 
-    def find_by_id(
-        self,
-        subscription_id: int,
-    ) -> Subscription | None: ...
-
     def find_by_user_id(
         self,
         user_id: int,

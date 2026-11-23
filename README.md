@@ -109,6 +109,21 @@ The project uses static type analysis with MyPy and automated testing with Pytes
 
 ---
 
+## Database Backups
+
+When running with Docker Compose, the `backup` service creates an initial
+snapshot at `backups/transit-database.json`. It overwrites that same file every
+hour if the database changed since the previous snapshot. If there are no
+changes at the hourly check, it waits for the next committed database change
+and writes a new snapshot immediately.
+
+The worker listens for PostgreSQL change notifications, so it must run alongside
+the application and the database migrations must be applied. These JSON
+snapshots contain application data, not the PostgreSQL schema or migration
+history; keep separate full PostgreSQL backups for disaster recovery.
+
+---
+
 ## GTFS Processing Pipeline
 
 The current data processing workflow is as follows:
@@ -183,7 +198,7 @@ GET /analytics/stops/top?limit=
 
 ```http
 POST /subscriptions
-GET  /subscriptions/users/{user_id}
+GET  /subscriptions?user_id={user_id}
 ```
 
 Requires `X-Role: user` or `X-Role: admin`.
@@ -246,17 +261,17 @@ Verify:
 
 ## Logging
 
-At the current stage, centralized logging has not yet been implemented.
+The application uses Python's standard `logging` module. HTTP requests include method, path, status, and duration; 4xx responses and rejected operations are warnings, while 5xx responses and unhandled exceptions are errors with tracebacks. Service logs include feed/import counts, duplicate checksums, subscription changes, schedule updates, notification counts, and database snapshot operations without logging request bodies or snapshot contents.
 
-During development and testing, the project relies on:
+Set `LOG_LEVEL` to `DEBUG`, `INFO`, `WARNING`, or `ERROR` to adjust verbosity. The `.env` example uses `WARNING`; if unset, the code defaults to `ERROR`.
 
-- Python exceptions;
-- SQLAlchemy logs and messages;
-- PostgreSQL messages;
-- FastAPI logs and messages;
-- Pytest reports.
+## Source rate limiting
 
-Future versions are expected to introduce structured logging based on Python's standard `logging` module for monitoring feed imports, error handling, and system operation auditing.
+The API limits requests independently by source IP. Configure
+`RATE_LIMIT_REQUESTS` and `RATE_LIMIT_WINDOW_SECONDS`; defaults are 100 requests
+per 60 seconds. Set `RATE_LIMIT_TRUST_PROXY_HEADERS=true` only behind a trusted
+reverse proxy. In that mode the middleware uses `X-Forwarded-For`; otherwise it
+uses the direct connection address.
 
 Run tests:
 

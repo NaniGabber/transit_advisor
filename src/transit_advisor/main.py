@@ -1,6 +1,13 @@
+import logging
+from time import perf_counter
+
 from fastapi import FastAPI
+from starlette.middleware.base import RequestResponseEndpoint
+from starlette.requests import Request
+from starlette.responses import Response
 
 from transit_advisor.api.analytics import router as analytics_router
+from transit_advisor.api.database_transfer import router as database_transfer_router
 from transit_advisor.api.feeds import (
     router as feeds_router,
 )
@@ -15,8 +22,57 @@ from transit_advisor.api.stops import router as stops_router
 from transit_advisor.api.subscription import (
     router as subscriptions_router,
 )
+from transit_advisor.logging_config import configure_logging
+from transit_advisor.rate_limit import SourceRateLimitMiddleware
+from transit_advisor.settings import (
+    RATE_LIMIT_REQUESTS,
+    RATE_LIMIT_TRUST_PROXY_HEADERS,
+    RATE_LIMIT_WINDOW_SECONDS,
+)
 
+configure_logging()
+logger = logging.getLogger(__name__)
 app = FastAPI()
+
+app.add_middleware(
+    SourceRateLimitMiddleware,
+    requests=RATE_LIMIT_REQUESTS,
+    window_seconds=RATE_LIMIT_WINDOW_SECONDS,
+    trust_proxy_headers=RATE_LIMIT_TRUST_PROXY_HEADERS,
+)
+
+
+@app.middleware("http")
+async def log_http_requests(
+    request: Request,
+    call_next: RequestResponseEndpoint,
+) -> Response:
+    started_at = perf_counter()
+    try:
+        response = await call_next(request)
+    except Exception:
+        logger.exception(
+            "http_request_failed method=%s path=%s",
+            request.method,
+            request.url.path,
+        )
+        raise
+
+    duration_ms = (perf_counter() - started_at) * 1000
+    log_message = (
+        "http_request method=%s path=%s status=%s duration_ms=%.2f",
+        request.method,
+        request.url.path,
+        response.status_code,
+        duration_ms,
+    )
+    if response.status_code >= 500:
+        logger.error(*log_message)
+    elif response.status_code >= 400:
+        logger.warning(*log_message)
+    else:
+        logger.info(*log_message)
+    return response
 
 
 @app.get("/")
@@ -50,4 +106,8 @@ app.include_router(
 
 app.include_router(
     analytics_router,
+)
+
+app.include_router(
+    database_transfer_router,
 )

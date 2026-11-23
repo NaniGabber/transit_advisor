@@ -23,6 +23,7 @@ class SqlAlchemySubscriptionRepository:
         try:
             self._session.flush()
         except IntegrityError as exc:
+            self._session.rollback()
             raise AlreadySubscribedError(
                 subscription.user_id, subscription.route_id
             ) from exc

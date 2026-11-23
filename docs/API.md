@@ -22,7 +22,7 @@ The API uses a simple `X-Role` header (for course project purposes):
 |------|-------------|
 | `guest` (default) | Read-only access: search routes, view departures, compare versions, view analytics. |
 | `user` | Can create subscriptions and view notifications. |
-| `admin` | Can upload GTFS feeds and create subscriptions. |
+| `admin` | Can upload GTFS feeds, create subscriptions, and export or import database snapshots. |
 
 Example:
 
@@ -71,6 +71,56 @@ Uploads a GTFS archive. **Requires `X-Role: admin`.**
 
 ---
 
+## Database Transfer API
+
+Database transfer endpoints require `X-Role: admin`. Snapshots are versioned JSON files containing the application's eight data tables; they do not contain the PostgreSQL schema or migration history.
+
+In Docker Compose, the separate backup worker also writes an automatic snapshot
+to `backups/transit-database.json`: once at startup, hourly when data has
+changed, or immediately after the next database change if the hourly check
+found no changes. It overwrites the same file each time.
+
+### `GET /api/v1/admin/database/export`
+
+Downloads a snapshot as an `application/json` attachment.
+
+### `POST /api/v1/admin/database/import`
+
+Imports a snapshot from `multipart/form-data` with fields `file` and `confirm=true`. Import replaces the contents of all application tables in a single transaction. If validation or insertion fails, the transaction is rolled back. Uploads are limited to 100 MiB.
+
+```bash
+curl -X POST http://localhost:8000/api/v1/admin/database/import \
+  -H "X-Role: admin" \
+  -F "confirm=true" \
+  -F "file=@transit-database.json"
+```
+
+**Response (200 OK):**
+
+```json
+{
+  "imported": {
+    "agencies": 1,
+    "routes": 4,
+    "stops": 20,
+    "trips": 10,
+    "stop_times": 100,
+    "schedule_versions": 2,
+    "subscriptions": 3,
+    "notifications": 2
+  }
+}
+```
+
+**Errors:**
+
+- `400 Bad Request` — `confirm` is not `true`.
+- `403 Forbidden` — role is not `admin`.
+- `413 Content Too Large` — snapshot exceeds 100 MiB.
+- `422 Unprocessable Content` — snapshot format or table data is invalid.
+
+---
+
 ## Route API
 
 ### `GET /api/v1/routes`
@@ -103,13 +153,15 @@ Searches routes by route number, name, or stop.
 
 ### `GET /api/v1/routes/{route_id}/diff`
 
-Compares two schedule versions for a specific route.
+Compares two schedule versions directly for a specific route. The versions do
+not need to be consecutive; for example, `from_version=1` and `to_version=3`
+compares version 1 with version 3 without combining version 2's changes.
 
 **Path parameters:**
 
 | Parameter | Type | Description |
 |------------|------|-------------|
-| `route_id` | integer | Internal route ID. |
+| `route_id` | integer | Internal route ID (`id` from route search, not the GTFS `route_id`). |
 
 **Query parameters:**
 
@@ -123,7 +175,7 @@ Compares two schedule versions for a specific route.
 ```json
 {
   "from_version": 1,
-  "to_version": 2,
+  "to_version": 3,
   "added_routes": [],
   "removed_routes": [],
   "changed_stop_times": {
@@ -134,7 +186,7 @@ Compares two schedule versions for a specific route.
 
 **Errors:**
 
-- `404 Not Found` — route not found.
+- `404 Not Found` — route not found or it has no trips in either selected version.
 
 ---
 
@@ -316,15 +368,17 @@ Creates a route subscription. **Requires `X-Role: user` or `X-Role: admin`.**
 - `409 Conflict` — subscription already exists.
 - `422 Unprocessable Content` — invalid payload.
 
-### `GET /api/v1/subscriptions/users/{user_id}`
+### `GET /api/v1/subscriptions?user_id={user_id}`
 
 Returns all subscriptions for a user.
 
-**Path parameters:**
+**Query parameters:**
 
 | Parameter | Type | Description |
 |------------|------|-------------|
 | `user_id` | integer | User ID. |
+
+The legacy path `GET /api/v1/subscriptions/users/{user_id}` is also supported.
 
 **Response (200 OK):**
 

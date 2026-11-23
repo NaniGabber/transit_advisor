@@ -1,11 +1,16 @@
+import logging
+
+import pytest
+
 from transit_advisor.domain.route import Route
 from transit_advisor.domain.stoptime import StopTime
+from transit_advisor.domain.trip import Trip
 from transit_advisor.services.schedule_diff_service import (
     ScheduleDiffService,
 )
 
 
-def test_detect_added_route() -> None:
+def test_detect_added_route(caplog: pytest.LogCaptureFixture) -> None:
     service = ScheduleDiffService()
 
     old_routes = [
@@ -38,13 +43,15 @@ def test_detect_added_route() -> None:
         ),
     ]
 
-    diff = service.compare_routes(
-        old_routes,
-        new_routes,
-    )
+    with caplog.at_level(
+        logging.DEBUG,
+        logger="transit_advisor.services.schedule_diff_service",
+    ):
+        diff = service.compare_routes(old_routes, new_routes)
 
     assert diff.added_routes == ["12"]
     assert diff.removed_routes == []
+    assert "route_diff_calculated added_routes=1" in caplog.text
 
 
 def test_detect_removed_route() -> None:
@@ -229,6 +236,40 @@ def test_no_changes_in_stop_times() -> None:
     )
 
     assert diff.changed_stop_times == {}
+
+
+def test_compare_versions_handles_trip_additions_and_removals_on_same_route() -> None:
+    service = ScheduleDiffService()
+    old_trips = [
+        Trip(id=1, route_id=1, trip_id="old_trip"),
+        Trip(id=2, route_id=1, trip_id="shared_trip"),
+    ]
+    new_trips = [
+        Trip(id=3, route_id=1, trip_id="new_trip"),
+        Trip(id=4, route_id=1, trip_id="shared_trip"),
+    ]
+
+    diff = service.compare_versions(
+        old_trips=old_trips,
+        new_trips=new_trips,
+        old_stop_times=[
+            _make_stop_time(trip_id=1, stop_id=1, arrival_hour=8, departure_hour=8),
+            _make_stop_time(trip_id=2, stop_id=2, arrival_hour=8, departure_hour=8),
+        ],
+        new_stop_times=[
+            _make_stop_time(trip_id=3, stop_id=3, arrival_hour=9, departure_hour=9),
+            _make_stop_time(trip_id=4, stop_id=2, arrival_hour=9, departure_hour=9),
+        ],
+        trip_to_route={
+            "old_trip": "15",
+            "new_trip": "15",
+            "shared_trip": "15",
+        },
+    )
+
+    assert diff.added_routes == []
+    assert diff.removed_routes == []
+    assert diff.changed_stop_times == {"15": [1, 2, 3]}
 
 
 def test_added_stop_time_is_detected() -> None:

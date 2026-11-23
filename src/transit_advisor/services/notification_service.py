@@ -1,3 +1,4 @@
+import logging
 from datetime import datetime
 
 from transit_advisor.domain.notification import (
@@ -12,6 +13,8 @@ from transit_advisor.domain.schedulediff import (
 from transit_advisor.domain.subscription import (
     Subscription,
 )
+
+logger = logging.getLogger(__name__)
 
 
 class NotificationService:
@@ -37,9 +40,18 @@ class NotificationService:
             created_at=datetime.now(),
         )
 
-        return self._notification_repository.save(
+        saved = self._notification_repository.save(
             notification,
         )
+        logger.info(
+            "notification_created notification_id=%s user_id=%s "
+            "subscription_id=%s schedule_version_id=%s",
+            saved.id,
+            user_id,
+            subscription_id,
+            schedule_version_id,
+        )
+        return saved
 
     def notify_about_added_routes(
         self,
@@ -66,4 +78,9 @@ class NotificationService:
 
                 created += 1
 
+        logger.info(
+            "added_route_notifications_processed version_id=%s count=%s",
+            schedule_version_id,
+            created,
+        )
         return created

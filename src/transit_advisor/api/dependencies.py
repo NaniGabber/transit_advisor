@@ -1,3 +1,4 @@
+import logging
 from collections.abc import Generator
 from typing import Annotated
 
@@ -11,6 +12,9 @@ from transit_advisor.infrastructure.repositories.agency import (
 )
 from transit_advisor.infrastructure.repositories.analytics import (
     SqlAlchemyAnalyticsRepository,
+)
+from transit_advisor.infrastructure.repositories.database_transfer import (
+    SqlAlchemyDatabaseTransferRepository,
 )
 from transit_advisor.infrastructure.repositories.notification import (
     SqlAlchemyNotificationRepository,
@@ -29,6 +33,7 @@ from transit_advisor.infrastructure.repositories.subscription import (
 from transit_advisor.infrastructure.repositories.trip import SqlAlchemyTripRepository
 from transit_advisor.services.analytics_service import AnalyticsService
 from transit_advisor.services.checksum_service import ChecksumService
+from transit_advisor.services.database_transfer_service import DatabaseTransferService
 from transit_advisor.services.feed_upload_service import FeedUploadService
 from transit_advisor.services.feed_validation_service import FeedValidator
 from transit_advisor.services.gtfs_import_service import GtfsImportService
@@ -48,13 +53,16 @@ SessionLocal = sessionmaker(
     autoflush=False,
     autocommit=False,
 )
+logger = logging.getLogger(__name__)
 
 
 def get_session() -> Generator[Session, None, None]:
     session = SessionLocal()
     try:
         yield session
+        session.commit()
     except Exception:
+        logger.exception("database_session_failed")
         session.rollback()
         raise
     finally:
@@ -120,6 +128,12 @@ def get_gtfs_import_service(
         trip_repository=trip_repository,
         stoptime_repository=stoptime_repository,
     )
+
+
+def get_database_transfer_service(
+    session: Annotated[Session, Depends(get_session)],
+) -> DatabaseTransferService:
+    return DatabaseTransferService(SqlAlchemyDatabaseTransferRepository(session))
 
 
 # Feed Upload Dependencies

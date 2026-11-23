@@ -88,3 +88,26 @@ def get_subscriptions(
         for sub in subscriptions
         if sub.id is not None
     ]
+
+
+@router.get(
+    "",
+    response_model=list[SubscriptionResponse],
+)
+def get_subscriptions_by_query(
+    user_id: int,
+    service: Annotated[
+        SubscriptionService,
+        Depends(get_subscription_service),
+    ],
+) -> list[SubscriptionResponse]:
+    return [
+        SubscriptionResponse(
+            id=sub.id,
+            user_id=sub.user_id,
+            route_id=sub.route_id,
+            is_active=sub.is_active,
+        )
+        for sub in service.list_for_user(user_id)
+        if sub.id is not None
+    ]

@@ -1,3 +1,4 @@
+import logging
 import shutil
 import tempfile
 import zipfile
@@ -17,6 +18,7 @@ router = APIRouter(
     prefix="/api/v1/imports",
     tags=["imports"],
 )
+logger = logging.getLogger(__name__)
 
 
 @router.post(
@@ -42,6 +44,7 @@ def upload_feed(
     ],
 ) -> UploadFeedResponse:
     if not file.filename or not file.filename.endswith(".zip"):
+        logger.warning("feed_upload_rejected reason=invalid_filename")
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail="File must be a .zip archive.",
@@ -56,6 +59,7 @@ def upload_feed(
             with zipfile.ZipFile(tmp_path):
                 pass
         except zipfile.BadZipFile as exc:
+            logger.warning("feed_upload_rejected reason=invalid_zip")
             raise HTTPException(
                 status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
                 detail="File is not a valid zip archive.",

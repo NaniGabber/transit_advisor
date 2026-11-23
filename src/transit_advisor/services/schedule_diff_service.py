@@ -1,3 +1,4 @@
+import logging
 from typing import TypeVar
 
 from transit_advisor.domain.route import Route
@@ -6,6 +7,7 @@ from transit_advisor.domain.stoptime import StopTime
 from transit_advisor.domain.trip import Trip
 
 TripKey = TypeVar("TripKey", int, str)
+logger = logging.getLogger(__name__)
 
 
 class ScheduleDiffService:
@@ -31,11 +33,18 @@ class ScheduleDiffService:
             trip_to_route or {},
         )
 
-        return ScheduleDiff(
+        diff = ScheduleDiff(
             added_routes=added_routes,
             removed_routes=removed_routes,
             changed_stop_times=changed_stop_times,
         )
+        logger.debug(
+            "route_diff_calculated added_routes=%s removed_routes=%s changed_routes=%s",
+            len(diff.added_routes),
+            len(diff.removed_routes),
+            len(diff.changed_stop_times),
+        )
+        return diff
 
     def compare_versions(
         self,
@@ -48,23 +57,16 @@ class ScheduleDiffService:
         old_pk_to_gtfs = {t.id: t.trip_id for t in old_trips if t.id is not None}
         new_pk_to_gtfs = {t.id: t.trip_id for t in new_trips if t.id is not None}
 
-        old_gtfs_ids = set(old_pk_to_gtfs.values())
-        new_gtfs_ids = set(new_pk_to_gtfs.values())
-
-        added_routes = sorted(
-            {
-                trip_to_route[t.trip_id]
-                for t in new_trips
-                if t.trip_id not in old_gtfs_ids and t.trip_id in trip_to_route
-            }
-        )
-        removed_routes = sorted(
-            {
-                trip_to_route[t.trip_id]
-                for t in old_trips
-                if t.trip_id not in new_gtfs_ids and t.trip_id in trip_to_route
-            }
-        )
+        old_routes = {
+            trip_to_route[trip.trip_id]
+            for trip in old_trips
+            if trip.trip_id in trip_to_route
+        }
+        new_routes = {
+            trip_to_route[trip.trip_id]
+            for trip in new_trips
+            if trip.trip_id in trip_to_route
+        }
 
         old_map = self._index_by_gtfs(old_stop_times, old_pk_to_gtfs)
         new_map = self._index_by_gtfs(new_stop_times, new_pk_to_gtfs)
@@ -74,11 +76,19 @@ class ScheduleDiffService:
             trip_to_route,
         )
 
-        return ScheduleDiff(
-            added_routes=added_routes,
-            removed_routes=removed_routes,
+        diff = ScheduleDiff(
+            added_routes=sorted(new_routes - old_routes),
+            removed_routes=sorted(old_routes - new_routes),
             changed_stop_times=changed_stop_times,
         )
+        logger.debug(
+            "version_diff_calculated added_routes=%s removed_routes=%s "
+            "changed_routes=%s",
+            len(diff.added_routes),
+            len(diff.removed_routes),
+            len(diff.changed_stop_times),
+        )
+        return diff
 
     def _index_by_pk(
         self,
@@ -109,11 +119,12 @@ class ScheduleDiffService:
         new_map: dict[tuple[TripKey, int], tuple[str, str]],
         trip_to_route: dict[TripKey, str],
     ) -> dict[str, list[int]]:
-        changed: dict[str, list[int]] = {}
-        for (trip_key, stop_id), new_times in new_map.items():
+        changed: dict[str, set[int]] = {}
+        for trip_key, stop_id in old_map.keys() | new_map.keys():
             old_times = old_map.get((trip_key, stop_id))
+            new_times = new_map.get((trip_key, stop_id))
             if old_times != new_times:
                 route_id = trip_to_route.get(trip_key)
                 if route_id is not None:
-                    changed.setdefault(route_id, []).append(stop_id)
-        return changed
+                    changed.setdefault(route_id, set()).add(stop_id)
+        return {route_id: sorted(stop_ids) for route_id, stop_ids in changed.items()}

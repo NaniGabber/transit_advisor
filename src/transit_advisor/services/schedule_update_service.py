@@ -1,3 +1,5 @@
+import logging
+
 from transit_advisor.domain.repositories.route import (
     RouteRepository,
 )
@@ -17,6 +19,8 @@ from transit_advisor.services.notification_service import (
 from transit_advisor.services.schedule_diff_service import (
     ScheduleDiffService,
 )
+
+logger = logging.getLogger(__name__)
 
 
 class ScheduleUpdateService:
@@ -52,6 +56,13 @@ class ScheduleUpdateService:
             new_stop_times=new_stop_times,
             trip_to_route=trip_to_route,
         )
+        logger.info(
+            "schedule_comparison_completed added_routes=%s removed_routes=%s "
+            "changed_routes=%s",
+            len(diff.added_routes),
+            len(diff.removed_routes),
+            len(diff.changed_stop_times),
+        )
 
         created_notifications = 0
 
@@ -77,6 +88,11 @@ class ScheduleUpdateService:
                 )
                 created_notifications += 1
 
+        logger.info(
+            "schedule_notifications_created version_id=%s count=%s",
+            schedule_version_id,
+            created_notifications,
+        )
         return created_notifications
 
     def process_version_update(
@@ -108,6 +124,16 @@ class ScheduleUpdateService:
             new_stop_times=new_stop_times,
             trip_to_route=trip_to_route,
         )
+        logger.info(
+            "schedule_version_comparison_completed old_version_id=%s "
+            "new_version_id=%s added_routes=%s removed_routes=%s "
+            "changed_routes=%s",
+            old_version_id,
+            new_version_id,
+            len(diff.added_routes),
+            len(diff.removed_routes),
+            len(diff.changed_stop_times),
+        )
 
         created_notifications = 0
         for gtfs_route_id, changed_stop_ids in diff.changed_stop_times.items():
@@ -128,6 +154,11 @@ class ScheduleUpdateService:
                 )
                 created_notifications += 1
 
+        logger.info(
+            "schedule_notifications_created version_id=%s count=%s",
+            schedule_version_id,
+            created_notifications,
+        )
         return created_notifications
 
     def compare_route_versions(
@@ -146,6 +177,12 @@ class ScheduleUpdateService:
         old_trips = [t for t in old_trips if t.route_id == route_id]
         new_trips = [t for t in new_trips if t.route_id == route_id]
 
+        if not old_trips and not new_trips:
+            raise ValueError(
+                f"Route {route.route_id} has no trips in either schedule version "
+                f"{from_version_id} or {to_version_id}"
+            )
+
         old_stop_times = self._stoptime_repository.find_by_trip_ids(
             [t.id for t in old_trips if t.id is not None]
         )
@@ -157,10 +194,17 @@ class ScheduleUpdateService:
         for trip in [*old_trips, *new_trips]:
             trip_to_route[trip.trip_id] = route.route_id
 
-        return self._diff_service.compare_versions(
+        diff = self._diff_service.compare_versions(
             old_trips=old_trips,
             new_trips=new_trips,
             old_stop_times=old_stop_times,
             new_stop_times=new_stop_times,
             trip_to_route=trip_to_route,
         )
+        logger.debug(
+            "route_versions_compared route_id=%s from_version=%s to_version=%s",
+            route_id,
+            from_version_id,
+            to_version_id,
+        )
+        return diff

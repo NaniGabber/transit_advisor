@@ -1,4 +1,8 @@
+import pytest
+from sqlalchemy.orm import Session
+
 from transit_advisor.domain.agency import Agency
+from transit_advisor.domain.exceptions import AlreadySubscribedError
 from transit_advisor.domain.route import Route
 from transit_advisor.domain.subscription import (
     Subscription,
@@ -35,6 +39,29 @@ def test_save_subscription(
     assert saved.id is not None
     assert saved.user_id == 1
     assert saved.route_id == route.id
+
+
+def test_duplicate_subscription_does_not_leave_session_in_failed_state(
+    subscription_repository: SqlAlchemySubscriptionRepository,
+    route_repository: SqlAlchemyRouteRepository,
+    agency: Agency,
+    session: Session,
+) -> None:
+    if agency.id is None:
+        return
+
+    route = route_repository.save(_make_route(agency.id, "11"))
+    assert route.id is not None
+    subscription = Subscription(id=None, user_id=1, route_id=route.id)
+    subscription_repository.save(subscription)
+    session.commit()
+
+    with pytest.raises(AlreadySubscribedError):
+        subscription_repository.save(subscription)
+
+    saved = subscription_repository.find_by_user_and_route(1, route.id)
+    assert saved is not None
+    assert saved.user_id == 1
 
 
 def test_find_by_user_id(

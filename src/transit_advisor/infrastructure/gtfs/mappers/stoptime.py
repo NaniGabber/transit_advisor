@@ -7,9 +7,12 @@ def to_stoptime(
     trip_id: int,
     stop_id: int,
 ) -> StopTime | None:
-    stop_sequence = parse_int(
-        row.get("stop_sequence", ""),
-    )
+    try:
+        stop_sequence = parse_int(
+            row.get("stop_sequence", ""),
+        )
+    except Exception:
+        return None
 
     if stop_sequence is None:
         return None

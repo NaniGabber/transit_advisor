@@ -108,8 +108,7 @@ def test_get_user_subscriptions(
     )
 
     response = client.get(
-        "/api/v1/subscriptions",
-        params={"user_id": 1},
+        "/api/v1/subscriptions/users/1",
         headers={"X-Role": "user"},
     )
 

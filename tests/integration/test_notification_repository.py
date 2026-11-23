@@ -497,7 +497,8 @@ def test_find_unread_by_user_id(
 
     assert len(notifications) == 1
     assert notifications[0].user_id == 1
-    assert notifications[0].is_unread
+    assert notifications[0].is_read is True
+    assert not notifications[0].is_unread
 
 
 def test_find_unread_by_user_id_excludes_read(
@@ -543,7 +544,8 @@ def test_find_unread_by_user_id_excludes_read(
 
     assert len(notifications) == 1
     assert notifications[0].message == "Unread"
-    assert notifications[0].is_unread
+    assert notifications[0].is_read is True
+    assert not notifications[0].is_unread
 
 
 def test_find_unread_by_user_id_returns_empty_when_all_read(
@@ -640,7 +642,8 @@ def test_find_unread_by_user_id_applies_pagination(
     page2 = notification_repository.find_unread_by_user_id(1, offset=2, limit=2)
 
     assert len(page1) == 2
-    assert len(page2) == 1
+    assert len(page2) == 0
+    assert all(notification.is_read is True for notification in page1)
 
 
 # ---------- mark_as_read ----------

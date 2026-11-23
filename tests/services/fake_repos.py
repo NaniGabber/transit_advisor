@@ -42,9 +42,6 @@ class FakeAgencyRepository:
                 return agency
         return None
 
-    def find_by_agency_ids(self, agency_ids: list[str]) -> dict[str, Agency]:
-        return {a.agency_id: a for a in self.saved if a.agency_id in agency_ids}
-
 
 class FakeRouteRepository:
     def __init__(self) -> None:
@@ -64,9 +61,6 @@ class FakeRouteRepository:
             if route.route_id == route_id:
                 return route
         return None
-
-    def find_by_route_ids(self, route_ids: list[str]) -> dict[str, Route]:
-        return {r.route_id: r for r in self.saved if r.route_id in route_ids}
 
     def find_by_id(self, route_id: int) -> Route | None:
         return next((r for r in self.saved if r.id == route_id), None)
@@ -116,9 +110,6 @@ class FakeStopRepository:
             if stop.stop_id == stop_id:
                 return stop
         return None
-
-    def find_by_stop_ids(self, stop_ids: list[str]) -> dict[str, Stop]:
-        return {s.stop_id: s for s in self.saved if s.stop_id in stop_ids}
 
 
 class FakeTripRepository:
@@ -203,15 +194,6 @@ class FakeStopTimeRepository:
         return sorted(
             (st for st in self.saved if st.stop_id == stop_id),
             key=lambda st: st.arrival_time,
-        )
-
-    def find_by_route_id_and_version(
-        self,
-        route_id: int,
-        schedule_version_id: int,
-    ) -> list[StopTime]:
-        raise NotImplementedError(
-            "FakeStopTimeRepository does not know about trips/routes"
         )
 
     def find_departures(
@@ -484,12 +466,6 @@ class FakeSubscriptionRepository:
             self._next_id += 1
         self.saved.append(subscription)
         return subscription
-
-    def find_by_id(self, subscription_id: int) -> Subscription | None:
-        return next(
-            (s for s in self.saved if s.id == subscription_id),
-            None,
-        )
 
     def find_by_user_id(self, user_id: int) -> list[Subscription]:
         return [s for s in self.saved if s.user_id == user_id]

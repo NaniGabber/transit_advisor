@@ -36,15 +36,6 @@ class SqlAlchemyStopRepository:
             return None
         return self._to_domain(model)
 
-    def find_by_stop_ids(self, stop_ids: list[str]) -> dict[str, Stop]:
-        """Bulk lookup. Один SELECT, повертає dict для O(1) доступу."""
-        if not stop_ids:
-            return {}
-        statement = select(StopModel).where(
-            StopModel.stop_id.in_(stop_ids),
-        )
-        return {m.stop_id: self._to_domain(m) for m in self._session.scalars(statement)}
-
     def _to_model(self, stop: Stop) -> StopModel:
         return StopModel(
             stop_id=stop.stop_id,

@@ -36,17 +36,6 @@ class SqlAlchemyAgencyRepository:
             return None
         return self._to_domain(model)
 
-    def find_by_agency_ids(self, agency_ids: list[str]) -> dict[str, Agency]:
-        """Bulk lookup. Один SELECT, повертає dict для O(1) доступу."""
-        if not agency_ids:
-            return {}
-        statement = select(AgencyModel).where(
-            AgencyModel.agency_id.in_(agency_ids),
-        )
-        return {
-            m.agency_id: self._to_domain(m) for m in self._session.scalars(statement)
-        }
-
     def _to_model(self, agency: Agency) -> AgencyModel:
         return AgencyModel(
             agency_id=agency.agency_id,

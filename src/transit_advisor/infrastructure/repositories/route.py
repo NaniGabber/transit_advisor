@@ -35,17 +35,6 @@ class SqlAlchemyRouteRepository:
             return None
         return self._to_domain(model)
 
-    def find_by_route_ids(self, route_ids: list[str]) -> dict[str, Route]:
-        """Bulk lookup. Один SELECT."""
-        if not route_ids:
-            return {}
-        statement = select(RouteModel).where(
-            RouteModel.route_id.in_(route_ids),
-        )
-        return {
-            m.route_id: self._to_domain(m) for m in self._session.scalars(statement)
-        }
-
     def find_by_id(self, route_id: int) -> Route | None:
         model = self._session.get(RouteModel, route_id)
         if model is None:

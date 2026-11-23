@@ -30,12 +30,6 @@ class StopTimeRepository(Protocol):
         stop_id: int,
     ) -> list[StopTime]: ...
 
-    def find_by_route_id_and_version(
-        self,
-        route_id: int,
-        schedule_version_id: int,
-    ) -> list[StopTime]: ...
-
     def find_departures(
         self,
         stop_id: int,

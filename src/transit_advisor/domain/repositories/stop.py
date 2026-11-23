@@ -18,8 +18,3 @@ class StopRepository(Protocol):
         self,
         stop_id: str,
     ) -> Stop | None: ...
-
-    def find_by_stop_ids(
-        self,
-        stop_ids: list[str],
-    ) -> dict[str, Stop]: ...

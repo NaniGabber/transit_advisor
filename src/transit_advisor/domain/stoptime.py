@@ -28,7 +28,3 @@ class StopTime:
 
         if self.stop_sequence <= 0:
             raise ValueError("stop sequence must be positive")
-
-    @property
-    def is_first_stop(self) -> bool:
-        return self.stop_sequence == 1

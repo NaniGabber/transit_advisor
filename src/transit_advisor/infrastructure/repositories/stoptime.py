@@ -53,22 +53,6 @@ class SqlAlchemyStopTimeRepository:
         )
         return [self._to_domain(m) for m in self._session.scalars(statement)]
 
-    def find_by_route_id_and_version(
-        self,
-        route_id: int,
-        schedule_version_id: int,
-    ) -> list[StopTime]:
-        statement = (
-            select(StopTimeModel)
-            .join(TripModel, StopTimeModel.trip_id == TripModel.id)
-            .where(
-                TripModel.route_id == route_id,
-                TripModel.schedule_version_id == schedule_version_id,
-            )
-            .order_by(StopTimeModel.trip_id, StopTimeModel.stop_sequence)
-        )
-        return [self._to_domain(m) for m in self._session.scalars(statement)]
-
     def find_departures(
         self,
         stop_id: int,

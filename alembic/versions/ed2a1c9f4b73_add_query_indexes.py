@@ -54,6 +54,24 @@ def upgrade() -> None:
         ["route_id", "schedule_version_id", "service_id"],
     )
 
+    op.execute(
+        """
+        DELETE FROM stop_times
+        WHERE id IN (
+            SELECT id
+            FROM (
+                SELECT
+                    id,
+                    ROW_NUMBER() OVER (
+                        PARTITION BY trip_id, stop_sequence
+                        ORDER BY id
+                    ) AS duplicate_number
+                FROM stop_times
+            ) ranked
+            WHERE duplicate_number > 1
+        )
+        """
+    )
     op.create_unique_constraint(
         "uq_stop_times_trip_sequence",
         "stop_times",

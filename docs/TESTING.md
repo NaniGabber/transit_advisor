@@ -7,8 +7,8 @@ PASSED
 ## Coverage Overview
 
 - **Total coverage:** 95%
-- **Statements:** 2058
-- **Covered lines:** 1964
+- **Statements:** 2055
+- **Covered lines:** 1961
 - **Missing lines:** 94
 - **Excluded lines:** 0
 
@@ -28,7 +28,7 @@ PASSED
 | `src/transit_advisor/api/routes.py` | 19 | 0 | 100% |
 | `src/transit_advisor/api/schemas.py` | 67 | 0 | 100% |
 | `src/transit_advisor/api/stops.py` | 19 | 0 | 100% |
-| `src/transit_advisor/api/subscription.py` | 26 | 2 | 92% |
+| `src/transit_advisor/api/subscription.py` | 23 | 2 | 91% |
 | `src/transit_advisor/domain/__init__.py` | 9 | 0 | 100% |
 | `src/transit_advisor/domain/agency.py` | 22 | 2 | 91% |
 | `src/transit_advisor/domain/exceptions.py` | 21 | 0 | 100% |

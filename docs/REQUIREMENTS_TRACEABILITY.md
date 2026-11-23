@@ -26,11 +26,11 @@ This document maps the original project requirements to their implementation wit
 | Feed upload API | ✅ Implemented | api/feeds.py |
 | Subscription API | ✅ Implemented | api/subscriptions.py |
 | Notification API | ✅ Implemented | api/notifications.py |
-| Route search | ❌ Planned | Future work |
-| Stop departures | ❌ Planned | Future work |
-| Journey planning without transfers | ❌ Planned | Future work |
+| Route search | ✅ Implemented | `RouteRepository.search`, `GET /api/v1/routes` |
+| Stop departures | ✅ Implemented | `StopTimeRepository.find_departures`, `GET /api/v1/stops/{id}/departures` |
+| Journey planning without transfers | ✅ Implemented | `JourneyService`, `GET /api/v1/journeys` |
 | Route timetable comparison | ✅ Implemented | `ScheduleDiffService.compare_versions`, `compare_route_versions` |
-| Analytical reporting | ❌ Planned | Future work |
+| Analytical reporting | ✅ Implemented | `AnalyticsService`, `/api/v1/analytics/*` |
 
 ---
 
@@ -87,10 +87,7 @@ This document maps the original project requirements to their implementation wit
 
 The following requirements are identified for future development:
 
-- route search by route number and stop;
-- departure board for a selected stop;
-- journey planning without transfers;
-- transport analytics and reporting;
+- additional optimization and advanced analytics;
 - application-level transactions for feed imports;
 - structured logging;
 - user authentication and authorization;

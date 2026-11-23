@@ -198,7 +198,7 @@ GET /analytics/stops/top?limit=
 
 ```http
 POST /subscriptions
-GET  /subscriptions?user_id={user_id}
+GET  /subscriptions/users/{user_id}
 ```
 
 Requires `X-Role: user` or `X-Role: admin`.

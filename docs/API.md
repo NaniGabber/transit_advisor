@@ -368,17 +368,15 @@ Creates a route subscription. **Requires `X-Role: user` or `X-Role: admin`.**
 - `409 Conflict` — subscription already exists.
 - `422 Unprocessable Content` — invalid payload.
 
-### `GET /api/v1/subscriptions?user_id={user_id}`
+### `GET /api/v1/subscriptions/users/{user_id}`
 
 Returns all subscriptions for a user.
 
-**Query parameters:**
+**Path parameters:**
 
 | Parameter | Type | Description |
 |------------|------|-------------|
 | `user_id` | integer | User ID. |
-
-The legacy path `GET /api/v1/subscriptions/users/{user_id}` is also supported.
 
 **Response (200 OK):**
 

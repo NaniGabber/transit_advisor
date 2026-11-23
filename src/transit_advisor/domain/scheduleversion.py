@@ -16,7 +16,3 @@ class ScheduleVersion:
             raise ValueError(
                 "checksum must be a lowercase SHA-256 hex digest (64 chars)"
             )
-
-    @property
-    def short_checksum(self) -> str:
-        return self.checksum[:8]

@@ -29,12 +29,6 @@ class SqlAlchemySubscriptionRepository:
             ) from exc
         return self._to_domain(model)
 
-    def find_by_id(self, subscription_id: int) -> Subscription | None:
-        model = self._session.get(SubscriptionModel, subscription_id)
-        if model is None:
-            return None
-        return self._to_domain(model)
-
     def find_by_user_id(self, user_id: int) -> list[Subscription]:
         statement = select(SubscriptionModel).where(
             SubscriptionModel.user_id == user_id,
